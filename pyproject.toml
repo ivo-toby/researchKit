@@ -30,3 +30,11 @@ packages = ["src/research_cli"]
 "templates" = "share/research-cli/templates"
 "claude_commands" = "share/research-cli/claude_commands"
 "scripts" = "share/research-cli/scripts"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "src/",
+    "templates/",
+    "claude_commands/",
+    "scripts/",
+]

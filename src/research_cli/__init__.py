@@ -73,23 +73,23 @@ def get_template_dir() -> Path:
     """Get the templates directory from the package"""
     current_file = Path(__file__).resolve()
 
-    # Try development location first (repo root)
+    # Try system location first (Python's sys.prefix/share) - for installed packages
+    sys_templates = Path(sys.prefix) / "share" / "research-cli" / "templates"
+    if sys_templates.exists():
+        return sys_templates
+
+    # Try development location (repo root) - for editable installs
     dev_templates = current_file.parent.parent.parent / "templates"
     if dev_templates.exists():
         return dev_templates
 
-    # Try installed location (site-packages parent)
+    # Try alternative install locations
     site_packages = current_file.parent.parent
     installed_templates = site_packages / "share" / "research-cli" / "templates"
     if installed_templates.exists():
         return installed_templates
 
-    # Try system location (Python's sys.prefix/share)
-    sys_templates = Path(sys.prefix) / "share" / "research-cli" / "templates"
-    if sys_templates.exists():
-        return sys_templates
-
-    # Return dev location as fallback
+    # Return dev location as fallback with a warning path
     return dev_templates
 
 
@@ -133,7 +133,10 @@ def create_researchkit_structure(project_dir: Path, tracker: StepTracker):
 
     # Copy template files
     template_dir = get_template_dir()
-    if template_dir.exists():
+    if not template_dir.exists():
+        tracker.add_error(f"Template directory not found: {template_dir}")
+        tracker.add_error("Templates must be included in package distribution")
+    else:
         # Copy templates
         template_files = [
             "plan-template.md",
@@ -142,35 +145,52 @@ def create_researchkit_structure(project_dir: Path, tracker: StepTracker):
             "constitution-template.md",
         ]
 
+        copied_count = 0
         for template_file in template_files:
             src = template_dir / template_file
             if src.exists():
                 dst = researchkit_dir / "templates" / template_file
                 shutil.copy2(src, dst)
+                copied_count += 1
+            else:
+                tracker.add_error(f"Template file not found: {template_file}")
 
-        tracker.add_step("Copied template files")
+        if copied_count > 0:
+            tracker.add_step(f"Copied {copied_count} template files")
+        else:
+            tracker.add_error("No template files could be copied")
 
-        # Copy scripts
-        scripts_dir = template_dir.parent / "scripts"
-        if scripts_dir.exists():
-            # Copy bash scripts
-            bash_src = scripts_dir / "bash"
-            if bash_src.exists():
-                for script in bash_src.glob("*.sh"):
-                    dst = researchkit_dir / "scripts" / "bash" / script.name
-                    shutil.copy2(script, dst)
-                    # Make executable on Unix-like systems
-                    if os.name != "nt":
-                        os.chmod(dst, 0o755)
+    # Copy scripts
+    scripts_dir = template_dir.parent / "scripts"
+    if not scripts_dir.exists():
+        tracker.add_error(f"Scripts directory not found: {scripts_dir}")
+    else:
+        script_count = 0
+        # Copy bash scripts
+        bash_src = scripts_dir / "bash"
+        if bash_src.exists():
+            for script in bash_src.glob("*.sh"):
+                dst = researchkit_dir / "scripts" / "bash" / script.name
+                shutil.copy2(script, dst)
+                # Make executable on Unix-like systems
+                if os.name != "nt":
+                    os.chmod(dst, 0o755)
+                script_count += 1
+        else:
+            tracker.add_error("Bash scripts directory not found")
 
-            # Copy PowerShell scripts
-            ps_src = scripts_dir / "powershell"
-            if ps_src.exists():
-                for script in ps_src.glob("*.ps1"):
-                    dst = researchkit_dir / "scripts" / "powershell" / script.name
-                    shutil.copy2(script, dst)
+        # Copy PowerShell scripts
+        ps_src = scripts_dir / "powershell"
+        if ps_src.exists():
+            for script in ps_src.glob("*.ps1"):
+                dst = researchkit_dir / "scripts" / "powershell" / script.name
+                shutil.copy2(script, dst)
+                script_count += 1
 
-            tracker.add_step("Copied shell scripts")
+        if script_count > 0:
+            tracker.add_step(f"Copied {script_count} shell scripts")
+        else:
+            tracker.add_error("No shell scripts could be copied")
 
     # Create initial constitution
     constitution_path = researchkit_dir / "memory" / "constitution.md"
