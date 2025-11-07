@@ -99,6 +99,14 @@ def init_git_repo(project_dir: Path, tracker: StepTracker):
         tracker.add_step("Git repository already initialized")
         return
 
+    # Ask user if they want to initialize git
+    console.print("\n[yellow]⚠[/yellow]  No git repository found in the current directory.")
+    response = typer.confirm("Would you like to run 'git init' to initialize a git repository?")
+
+    if not response:
+        console.print("\n[red]✗ ResearchKit needs Git to function[/red]\n")
+        raise typer.Exit(1)
+
     try:
         subprocess.run(
             ["git", "init"],
@@ -109,8 +117,10 @@ def init_git_repo(project_dir: Path, tracker: StepTracker):
         tracker.add_step("Initialized git repository")
     except subprocess.CalledProcessError as e:
         tracker.add_error(f"Failed to initialize git: {e}")
+        raise typer.Exit(1)
     except FileNotFoundError:
         tracker.add_error("Git not found - please install git")
+        raise typer.Exit(1)
 
 
 def create_researchkit_structure(project_dir: Path, tracker: StepTracker):

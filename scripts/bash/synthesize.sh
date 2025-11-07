@@ -115,7 +115,27 @@ if ! git diff-index --quiet HEAD -- 2>/dev/null; then
     print_info "Changes committed to git"
 fi
 
+# Copy synthesis.md to project root with a descriptive name
+print_step "Copying synthesis to project root..."
+
+# Create a slugified filename from the research topic
+SLUGIFIED_TOPIC=$(echo "$RESEARCH_TOPIC" | tr '[:upper:]' '[:lower:]' | tr ' ' '_' | tr -cd '[:alnum:]_-')
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+SYNTHESIS_COPY="${PROJECT_ROOT}/${SLUGIFIED_TOPIC}.md"
+
+# Copy the synthesis file
+cp "$SYNTHESIS_FILE" "$SYNTHESIS_COPY"
+print_success "Synthesis copied to: ${SYNTHESIS_COPY}"
+
+# Commit the synthesis copy
+git add "$SYNTHESIS_COPY" 2>/dev/null || true
+if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+    git commit -m "research: Copy synthesis to project root as ${SLUGIFIED_TOPIC}.md" 2>/dev/null || true
+    print_info "Synthesis copy committed to git"
+fi
+
 echo "" >&2
 print_success "Ready for synthesis!"
 print_info "Edit ${SYNTHESIS_FILE} to complete your research"
+print_info "Root synthesis: ${SYNTHESIS_COPY}"
 echo "" >&2
