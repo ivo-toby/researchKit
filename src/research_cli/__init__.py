@@ -14,7 +14,7 @@ from rich.panel import Panel
 from rich.tree import Tree
 from rich import print as rprint
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 console = Console()
 app = typer.Typer(
