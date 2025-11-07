@@ -19,7 +19,7 @@ RESEARCH_NAME=$(basename "$RESEARCH_DIR")
 
 print_info "Research Project: ${RESEARCH_NAME}"
 print_info "Directory: ${RESEARCH_DIR}"
-echo ""
+echo "" >&2
 
 # Check required files exist
 PLAN_FILE="${RESEARCH_DIR}/plan.md"
@@ -44,7 +44,7 @@ if [ ! -f "$SOURCES_FILE" ]; then
 fi
 
 if [ $MISSING_FILES -eq 1 ]; then
-    echo ""
+    echo "" >&2
     print_error "Cannot synthesize - required files missing"
     print_info "Complete the execution phase first"
     exit 1
@@ -57,7 +57,7 @@ SYNTHESIS_FILE="${RESEARCH_DIR}/synthesis.md"
 
 if check_file_exists "$SYNTHESIS_FILE"; then
     print_warning "Synthesis file already exists - will be overwritten"
-    echo -n "Continue? [y/N] "
+    echo -n "Continue? [y/N] " >&2
     read -r response
     if [[ ! "$response" =~ ^[Yy]$ ]]; then
         print_info "Synthesis cancelled"
@@ -82,31 +82,31 @@ else
 fi
 
 # Display summary
-echo ""
+echo "" >&2
 print_success "Synthesis template created!"
-echo ""
-echo -e "${CYAN}Research Files (Complete):${NC}"
-echo "  📋 Plan:      ${PLAN_FILE}"
-echo "  📝 Findings:  ${FINDINGS_FILE}"
-echo "  📚 Sources:   ${SOURCES_FILE}"
-echo "  ${LIGHT_ICON}  Synthesis: ${SYNTHESIS_FILE}"
-echo ""
-echo -e "${CYAN}Synthesis Guidelines:${NC}"
-echo "  1. Extract research question from your plan"
-echo "  2. Summarize key findings with citations"
-echo "  3. Analyze patterns and themes"
-echo "  4. Address conflicting viewpoints"
-echo "  5. Draw evidence-based conclusions"
-echo "  6. Acknowledge limitations"
-echo "  7. Provide actionable recommendations"
-echo ""
-echo -e "${CYAN}Quality Checklist:${NC}"
-echo "  ☐ All claims properly cited"
-echo "  ☐ Evidence supports conclusions"
-echo "  ☐ Limitations acknowledged"
-echo "  ☐ Bibliography complete"
-echo "  ☐ Clear answer to research question"
-echo ""
+echo "" >&2
+echo -e "${CYAN}Research Files (Complete):${NC}" >&2
+echo "  📋 Plan:      ${PLAN_FILE}" >&2
+echo "  📝 Findings:  ${FINDINGS_FILE}" >&2
+echo "  📚 Sources:   ${SOURCES_FILE}" >&2
+echo "  ${LIGHT_ICON}  Synthesis: ${SYNTHESIS_FILE}" >&2
+echo "" >&2
+echo -e "${CYAN}Synthesis Guidelines:${NC}" >&2
+echo "  1. Extract research question from your plan" >&2
+echo "  2. Summarize key findings with citations" >&2
+echo "  3. Analyze patterns and themes" >&2
+echo "  4. Address conflicting viewpoints" >&2
+echo "  5. Draw evidence-based conclusions" >&2
+echo "  6. Acknowledge limitations" >&2
+echo "  7. Provide actionable recommendations" >&2
+echo "" >&2
+echo -e "${CYAN}Quality Checklist:${NC}" >&2
+echo "  ☐ All claims properly cited" >&2
+echo "  ☐ Evidence supports conclusions" >&2
+echo "  ☐ Limitations acknowledged" >&2
+echo "  ☐ Bibliography complete" >&2
+echo "  ☐ Clear answer to research question" >&2
+echo "" >&2
 
 # Commit the synthesis setup
 git add "$RESEARCH_DIR" 2>/dev/null || true
@@ -115,7 +115,7 @@ if ! git diff-index --quiet HEAD -- 2>/dev/null; then
     print_info "Changes committed to git"
 fi
 
-echo ""
+echo "" >&2
 print_success "Ready for synthesis!"
 print_info "Edit ${SYNTHESIS_FILE} to complete your research"
-echo ""
+echo "" >&2

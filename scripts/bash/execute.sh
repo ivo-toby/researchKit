@@ -19,7 +19,7 @@ RESEARCH_NAME=$(basename "$RESEARCH_DIR")
 
 print_info "Research Project: ${RESEARCH_NAME}"
 print_info "Directory: ${RESEARCH_DIR}"
-echo ""
+echo "" >&2
 
 # Check if plan exists
 PLAN_FILE="${RESEARCH_DIR}/plan.md"
@@ -72,30 +72,30 @@ EOF
     print_success "Created sources file"
 fi
 
-echo ""
+echo "" >&2
 print_success "Research execution environment ready!"
-echo ""
-echo -e "${CYAN}Research Files:${NC}"
-echo "  📋 Plan:     ${PLAN_FILE}"
-echo "  📝 Findings: ${FINDINGS_FILE}"
-echo "  📚 Sources:  ${SOURCES_FILE}"
-echo ""
-echo -e "${CYAN}Research Process:${NC}"
-echo "  1. Review your research plan in plan.md"
-echo "  2. Document findings in findings.md as you research"
-echo "  3. Add sources to sources.md with proper citations"
-echo "  4. Follow the constitution guidelines in .researchkit/memory/"
-echo ""
-echo -e "${CYAN}Tips:${NC}"
-echo "  • Use web search tools to gather information"
-echo "  • Always cite your sources immediately"
-echo "  • Note emerging themes and patterns"
-echo "  • Document questions that arise"
-echo "  • Cross-verify important claims"
-echo ""
-echo -e "${CYAN}When complete:${NC}"
-echo "  Use /researchkit.synthesize to generate final report"
-echo ""
+echo "" >&2
+echo -e "${CYAN}Research Files:${NC}" >&2
+echo "  📋 Plan:     ${PLAN_FILE}" >&2
+echo "  📝 Findings: ${FINDINGS_FILE}" >&2
+echo "  📚 Sources:  ${SOURCES_FILE}" >&2
+echo "" >&2
+echo -e "${CYAN}Research Process:${NC}" >&2
+echo "  1. Review your research plan in plan.md" >&2
+echo "  2. Document findings in findings.md as you research" >&2
+echo "  3. Add sources to sources.md with proper citations" >&2
+echo "  4. Follow the constitution guidelines in .researchkit/memory/" >&2
+echo "" >&2
+echo -e "${CYAN}Tips:${NC}" >&2
+echo "  • Use web search tools to gather information" >&2
+echo "  • Always cite your sources immediately" >&2
+echo "  • Note emerging themes and patterns" >&2
+echo "  • Document questions that arise" >&2
+echo "  • Cross-verify important claims" >&2
+echo "" >&2
+echo -e "${CYAN}When complete:${NC}" >&2
+echo "  Use /researchkit.synthesize to generate final report" >&2
+echo "" >&2
 
 # Auto-commit the setup
 git add "$RESEARCH_DIR" 2>/dev/null || true
