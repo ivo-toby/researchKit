@@ -20,24 +20,25 @@ WRITE_ICON="✍️"
 LIGHT_ICON="💡"
 
 # Print colored output
+# All output goes to stderr to avoid interfering with command substitution
 print_success() {
-    echo -e "${GREEN}${CHECK_MARK} $1${NC}"
+    echo -e "${GREEN}${CHECK_MARK} $1${NC}" >&2
 }
 
 print_error() {
-    echo -e "${RED}${CROSS_MARK} $1${NC}"
+    echo -e "${RED}${CROSS_MARK} $1${NC}" >&2
 }
 
 print_warning() {
-    echo -e "${YELLOW}⚠ $1${NC}"
+    echo -e "${YELLOW}⚠ $1${NC}" >&2
 }
 
 print_info() {
-    echo -e "${CYAN}ℹ $1${NC}"
+    echo -e "${CYAN}ℹ $1${NC}" >&2
 }
 
 print_step() {
-    echo -e "${BLUE}→ $1${NC}"
+    echo -e "${BLUE}→ $1${NC}" >&2
 }
 
 # Get the ResearchKit root directory
@@ -170,15 +171,15 @@ update_date_in_file() {
 # Display ResearchKit header
 show_header() {
     local title="$1"
-    echo -e "${CYAN}"
-    echo "╔════════════════════════════════════════════════════════════╗"
-    echo "║                                                            ║"
-    echo "║              ${RESEARCH_ICON}  ResearchKit                            ║"
-    echo "║                                                            ║"
-    echo "║              $title"
-    echo "║                                                            ║"
-    echo "╚════════════════════════════════════════════════════════════╝"
-    echo -e "${NC}"
+    echo -e "${CYAN}" >&2
+    echo "╔════════════════════════════════════════════════════════════╗" >&2
+    echo "║                                                            ║" >&2
+    echo "║              ${RESEARCH_ICON}  ResearchKit                            ║" >&2
+    echo "║                                                            ║" >&2
+    echo "║              $title" >&2
+    echo "║                                                            ║" >&2
+    echo "╚════════════════════════════════════════════════════════════╝" >&2
+    echo -e "${NC}" >&2
 }
 
 # Verify git is initialized

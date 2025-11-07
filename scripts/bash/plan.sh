@@ -14,8 +14,8 @@ RESEARCH_TOPIC="$1"
 
 if [ -z "$RESEARCH_TOPIC" ]; then
     print_error "Research topic is required"
-    echo "Usage: $0 <research-topic>"
-    echo "Example: $0 \"AI Safety Research\""
+    echo "Usage: $0 <research-topic>" >&2
+    echo "Example: $0 \"AI Safety Research\"" >&2
     exit 1
 fi
 
@@ -106,16 +106,16 @@ EOF
 )" 2>/dev/null || print_warning "Nothing new to commit"
 
 # Display summary
-echo ""
+echo "" >&2
 print_success "Research plan created successfully!"
-echo ""
+echo "" >&2
 print_info "Research Project: ${RESEARCH_NAME}"
 print_info "Branch: research/${RESEARCH_NAME}"
 print_info "Directory: ${RESEARCH_DIR}"
-echo ""
-echo -e "${CYAN}Next steps:${NC}"
-echo "  1. Edit ${PLAN_FILE}"
-echo "  2. Define your research question and objectives"
-echo "  3. Set up your search strategy"
-echo "  4. Use /researchkit.execute to begin research"
-echo ""
+echo "" >&2
+echo -e "${CYAN}Next steps:${NC}" >&2
+echo "  1. Edit ${PLAN_FILE}" >&2
+echo "  2. Define your research question and objectives" >&2
+echo "  3. Set up your search strategy" >&2
+echo "  4. Use /researchkit.execute to begin research" >&2
+echo "" >&2
