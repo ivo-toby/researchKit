@@ -25,3 +25,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/research_cli"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"templates" = "share/research-cli/templates"
+"claude_commands" = "share/research-cli/claude_commands"
+"scripts" = "share/research-cli/scripts"
