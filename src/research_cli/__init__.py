@@ -71,17 +71,25 @@ def show_banner():
 
 def get_template_dir() -> Path:
     """Get the templates directory from the package"""
-    # In development, templates are in the repo root
-    # When installed, they'll be in the package
     current_file = Path(__file__).resolve()
 
-    # Try package location first (installed via uv)
-    package_templates = current_file.parent.parent.parent / "templates"
-    if package_templates.exists():
-        return package_templates
-
-    # Fall back to development location
+    # Try development location first (repo root)
     dev_templates = current_file.parent.parent.parent / "templates"
+    if dev_templates.exists():
+        return dev_templates
+
+    # Try installed location (site-packages parent)
+    site_packages = current_file.parent.parent
+    installed_templates = site_packages / "share" / "research-cli" / "templates"
+    if installed_templates.exists():
+        return installed_templates
+
+    # Try system location (Python's sys.prefix/share)
+    sys_templates = Path(sys.prefix) / "share" / "research-cli" / "templates"
+    if sys_templates.exists():
+        return sys_templates
+
+    # Return dev location as fallback
     return dev_templates
 
 
