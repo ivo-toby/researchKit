@@ -30,7 +30,7 @@ ResearchKit is a CLI tool for conducting rigorous, well-documented research with
 
 ```bash
 # Install ResearchKit CLI
-uv tool install research-cli --from git+https://github.com/yourusername/researchKit.git
+uv tool install research-cli --from git+https://github.com/ivo-toby/researchKit.git
 
 # Verify installation
 research check
@@ -40,7 +40,7 @@ research check
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/researchKit.git
+git clone https://github.com/ivo-toby/researchKit.git
 cd researchKit
 
 # Install in editable mode
