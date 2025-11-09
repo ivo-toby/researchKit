@@ -120,6 +120,55 @@ def check_cli_tool(tool_name: str) -> bool:
         return False
 
 
+def convert_md_to_toml(md_path: Path) -> tuple[str, str]:
+    """Convert a markdown command file to TOML format for Gemini CLI
+
+    Args:
+        md_path: Path to the markdown file
+
+    Returns:
+        Tuple of (toml_content, command_name)
+    """
+    content = md_path.read_text()
+
+    # Parse frontmatter
+    description = ""
+    prompt_content = content
+
+    if content.startswith("---"):
+        parts = content.split("---", 2)
+        if len(parts) >= 3:
+            frontmatter = parts[1].strip()
+            prompt_content = parts[2].strip()
+
+            # Extract description from frontmatter
+            for line in frontmatter.split("\n"):
+                if line.startswith("description:"):
+                    description = line.split(":", 1)[1].strip()
+                    break
+
+    # Generate command name from filename
+    # researchkit_plan.md -> plan
+    command_name = md_path.stem.replace("researchkit_", "")
+
+    # Escape backslashes and double quotes in the prompt content for TOML
+    # TOML triple-quoted strings still process escape sequences
+    prompt_content_escaped = prompt_content.replace("\\", "\\\\").replace('"""', r'\"\"\""')
+
+    # Escape double quotes in description
+    description_escaped = description.replace('"', '\\"')
+
+    # Create TOML content
+    toml_content = f'''description = "{description_escaped}"
+
+prompt = """
+{prompt_content_escaped}
+"""
+'''
+
+    return toml_content, command_name
+
+
 def get_common_researchkit_sections() -> str:
     """Get common ResearchKit integration sections for README files"""
     return """## ResearchKit Integration
@@ -395,17 +444,27 @@ To use a custom prompt in Copilot Chat:
         readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
-    # For Gemini CLI, copy command files and create configuration
+    # For Gemini CLI, convert markdown templates to TOML format
     elif ai_agent == "gemini":
-        # Copy slash command files from templates
+        # Convert slash command files from markdown to TOML
         template_dir = get_template_dir()
         commands_template_dir = template_dir.parent / "claude_commands"
 
         if commands_template_dir.exists():
+            converted_count = 0
             for command_file in commands_template_dir.glob("*.md"):
-                dst = commands_dir / command_file.name
-                shutil.copy2(command_file, dst)
-            tracker.add_step("Created Gemini CLI slash commands")
+                # Convert to TOML format
+                toml_content, command_name = convert_md_to_toml(command_file)
+
+                # Write TOML file
+                dst = commands_dir / f"{command_name}.toml"
+                dst.write_text(toml_content)
+                converted_count += 1
+
+            if converted_count > 0:
+                tracker.add_step(f"Created {converted_count} Gemini CLI slash commands (TOML format)")
+            else:
+                tracker.add_error("No command templates could be converted")
         else:
             tracker.add_error("Command templates not found")
 
@@ -413,7 +472,7 @@ To use a custom prompt in Copilot Chat:
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with Gemini CLI
 
-This directory contains ResearchKit slash commands for Gemini CLI.
+This directory contains ResearchKit slash commands for Gemini CLI in TOML format.
 
 ## Installation
 
@@ -421,17 +480,42 @@ Install Gemini CLI from: https://github.com/google-gemini/gemini-cli
 
 ## Slash Commands
 
-Use these commands in Gemini CLI:
+The following slash commands are available (stored as `.toml` files):
 
-- `/researchkit.constitution` - Define research methodology and standards
-- `/researchkit.plan` - Create a structured research plan
-- `/researchkit.execute` - Execute research with proper documentation
-- `/researchkit.synthesize` - Generate comprehensive research report
-- `/researchkit.sources` - Manage bibliography and citations
+- `/constitution` - Define research methodology and standards
+- `/plan` - Create a structured research plan
+- `/execute` - Execute research with proper documentation
+- `/synthesize` - Generate comprehensive research report
+- `/sources` - Manage bibliography and citations
+
+**Note**: These commands are project-scoped and available when you run `gemini chat` from this directory.
 
 {get_common_researchkit_sections()}
 
 ## Using Gemini CLI for Research
+
+### Starting a Chat Session
+
+```bash
+gemini chat
+```
+
+### Using Slash Commands
+
+In the Gemini chat, use the slash commands:
+```
+/plan
+```
+
+This will load the research planning prompt and guide you through creating a structured research plan.
+
+### Command Format
+
+These TOML files define custom prompts. Each contains:
+- `description`: Brief explanation of what the command does
+- `prompt`: The full instructions for the AI assistant
+
+## Research Workflows with Gemini
 
 Gemini CLI can help with:
 - Literature review and summarization
@@ -442,11 +526,14 @@ Gemini CLI can help with:
 
 ### Tips
 
-- Use the slash commands above for guided research workflows
+- Use `/plan` to start a new research project
+- Use `/execute` when gathering sources and documenting findings
+- Use `/sources` to maintain your bibliography
+- Use `/synthesize` to create your final research report
+- Use `/constitution` to review research methodology principles
 - Ask Gemini to help refine your research question
 - Get help with citation formatting
 - Request summaries of complex sources
-- Use Gemini for source quality assessment
 """
         readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
