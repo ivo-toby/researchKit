@@ -120,6 +120,34 @@ def check_cli_tool(tool_name: str) -> bool:
         return False
 
 
+def get_common_researchkit_sections() -> str:
+    """Get common ResearchKit integration sections for README files"""
+    return """## ResearchKit Integration
+
+When working on research projects:
+1. Use the `.researchkit/` directory structure
+2. Follow the research workflow: Plan → Execute → Synthesize
+3. Maintain proper citations in `sources.md`
+4. Document findings in `findings.md`
+5. Create synthesis reports in `synthesis.md`
+
+## Research Commands
+
+Run these bash scripts to manage your research:
+
+```bash
+# Create a new research plan
+bash .researchkit/scripts/bash/plan.sh "Research Topic"
+
+# Set up execution
+bash .researchkit/scripts/bash/execute.sh
+
+# Generate synthesis
+bash .researchkit/scripts/bash/synthesize.sh
+```
+"""
+
+
 def get_template_dir() -> Path:
     """Get the templates directory from the package"""
     current_file = Path(__file__).resolve()
@@ -314,7 +342,7 @@ def create_agent_commands(project_dir: Path, ai_agent: str, tracker: StepTracker
     # For GitHub Copilot, create a README with instructions
     elif ai_agent == "copilot":
         readme_path = commands_dir / "README.md"
-        readme_path.write_text("""# ResearchKit with GitHub Copilot
+        readme_content = f"""# ResearchKit with GitHub Copilot
 
 This directory contains ResearchKit configuration for GitHub Copilot.
 
@@ -322,29 +350,7 @@ This directory contains ResearchKit configuration for GitHub Copilot.
 
 GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-powered code suggestions.
 
-## ResearchKit Integration
-
-When working on research projects:
-1. Use the `.researchkit/` directory structure
-2. Follow the research workflow: Plan → Execute → Synthesize
-3. Maintain proper citations in `sources.md`
-4. Document findings in `findings.md`
-5. Create synthesis reports in `synthesis.md`
-
-## Research Commands
-
-Run these bash scripts to manage your research:
-
-```bash
-# Create a new research plan
-bash .researchkit/scripts/bash/plan.sh "Research Topic"
-
-# Set up execution
-bash .researchkit/scripts/bash/execute.sh
-
-# Generate synthesis
-bash .researchkit/scripts/bash/synthesize.sh
-```
+{get_common_researchkit_sections()}
 
 ## Copilot Tips for Research
 
@@ -352,13 +358,14 @@ bash .researchkit/scripts/bash/synthesize.sh
 - Use Copilot to generate search query suggestions
 - Have Copilot help structure your findings
 - Let Copilot assist with summarizing sources
-""")
+"""
+        readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
     # For Gemini CLI, create configuration and instructions
     elif ai_agent == "gemini":
         readme_path = commands_dir / "README.md"
-        readme_path.write_text("""# ResearchKit with Gemini CLI
+        readme_content = f"""# ResearchKit with Gemini CLI
 
 This directory contains ResearchKit configuration for Gemini CLI.
 
@@ -366,29 +373,7 @@ This directory contains ResearchKit configuration for Gemini CLI.
 
 Install Gemini CLI from: https://github.com/google-gemini/gemini-cli
 
-## ResearchKit Integration
-
-When working on research projects:
-1. Use the `.researchkit/` directory structure
-2. Follow the research workflow: Plan → Execute → Synthesize
-3. Maintain proper citations in `sources.md`
-4. Document findings in `findings.md`
-5. Create synthesis reports in `synthesis.md`
-
-## Research Commands
-
-Run these bash scripts to manage your research:
-
-```bash
-# Create a new research plan
-bash .researchkit/scripts/bash/plan.sh "Research Topic"
-
-# Set up execution
-bash .researchkit/scripts/bash/execute.sh
-
-# Generate synthesis
-bash .researchkit/scripts/bash/synthesize.sh
-```
+{get_common_researchkit_sections()}
 
 ## Using Gemini CLI for Research
 
@@ -410,13 +395,14 @@ gemini chat "Format this source as APA citation: [source details]"
 # Summarize research findings
 gemini chat "Summarize these key points: [your findings]"
 ```
-""")
+"""
+        readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
     # For Cursor, create configuration with AI rules
     elif ai_agent == "cursor":
         readme_path = commands_dir / "README.md"
-        readme_path.write_text("""# ResearchKit with Cursor
+        readme_content = f"""# ResearchKit with Cursor
 
 This directory contains ResearchKit configuration for Cursor AI editor.
 
@@ -424,29 +410,7 @@ This directory contains ResearchKit configuration for Cursor AI editor.
 
 Cursor is an AI-powered code editor built on VS Code with integrated AI assistance.
 
-## ResearchKit Integration
-
-When working on research projects:
-1. Use the `.researchkit/` directory structure
-2. Follow the research workflow: Plan → Execute → Synthesize
-3. Maintain proper citations in `sources.md`
-4. Document findings in `findings.md`
-5. Create synthesis reports in `synthesis.md`
-
-## Research Commands
-
-Run these bash scripts to manage your research:
-
-```bash
-# Create a new research plan
-bash .researchkit/scripts/bash/plan.sh "Research Topic"
-
-# Set up execution
-bash .researchkit/scripts/bash/execute.sh
-
-# Generate synthesis
-bash .researchkit/scripts/bash/synthesize.sh
-```
+{get_common_researchkit_sections()}
 
 ## Using Cursor for Research
 
@@ -463,7 +427,8 @@ Cursor's AI can help with:
 - Highlight text and ask Cursor to refine or summarize
 - Use Cursor to help maintain consistent document structure
 - Ask Cursor to help verify citation completeness
-""")
+"""
+        readme_path.write_text(readme_content)
         # Create .cursorrules file for AI context
         cursorrules_path = commands_dir / ".cursorrules"
         cursorrules_path.write_text("""# ResearchKit Cursor AI Rules
@@ -506,7 +471,7 @@ This is a ResearchKit research project following structured research workflows.
     # For OpenCode, create configuration and prompts
     elif ai_agent == "opencode":
         readme_path = commands_dir / "README.md"
-        readme_path.write_text("""# ResearchKit with OpenCode
+        readme_content = f"""# ResearchKit with OpenCode
 
 This directory contains ResearchKit configuration for OpenCode AI.
 
@@ -514,29 +479,7 @@ This directory contains ResearchKit configuration for OpenCode AI.
 
 Install OpenCode from: https://opencode.ai
 
-## ResearchKit Integration
-
-When working on research projects:
-1. Use the `.researchkit/` directory structure
-2. Follow the research workflow: Plan → Execute → Synthesize
-3. Maintain proper citations in `sources.md`
-4. Document findings in `findings.md`
-5. Create synthesis reports in `synthesis.md`
-
-## Research Commands
-
-Run these bash scripts to manage your research:
-
-```bash
-# Create a new research plan
-bash .researchkit/scripts/bash/plan.sh "Research Topic"
-
-# Set up execution
-bash .researchkit/scripts/bash/execute.sh
-
-# Generate synthesis
-bash .researchkit/scripts/bash/synthesize.sh
-```
+{get_common_researchkit_sections()}
 
 ## Using OpenCode for Research
 
@@ -571,7 +514,8 @@ opencode "Summarize these research findings into key themes: [findings]"
 - Request summaries of complex sources
 - Get assistance with research methodology
 - Use OpenCode to identify gaps in your research
-""")
+"""
+        readme_path.write_text(readme_content)
         # Create prompts directory with research-specific prompts
         prompts_dir = commands_dir / "prompts"
         prompts_dir.mkdir(exist_ok=True)
@@ -607,7 +551,7 @@ When helping with research:
     elif ai_agent == "codex":
         readme_path = commands_dir / "README.md"
         codex_home_path = str(project_dir / agent_config["commands_dir"])
-        readme_path.write_text(f"""# ResearchKit with Codex CLI
+        readme_content = f"""# ResearchKit with Codex CLI
 
 This directory contains ResearchKit configuration for OpenAI Codex CLI.
 
@@ -639,29 +583,7 @@ $env:CODEX_HOME = "{codex_home_path}"
 
 Then restart your shell or run `source ~/.bashrc` (or equivalent).
 
-## ResearchKit Integration
-
-When working on research projects:
-1. Use the `.researchkit/` directory structure
-2. Follow the research workflow: Plan → Execute → Synthesize
-3. Maintain proper citations in `sources.md`
-4. Document findings in `findings.md`
-5. Create synthesis reports in `synthesis.md`
-
-## Research Commands
-
-Run these bash scripts to manage your research:
-
-```bash
-# Create a new research plan
-bash .researchkit/scripts/bash/plan.sh "Research Topic"
-
-# Set up execution
-bash .researchkit/scripts/bash/execute.sh
-
-# Generate synthesis
-bash .researchkit/scripts/bash/synthesize.sh
-```
+{get_common_researchkit_sections()}
 
 ## Using Codex CLI for Research
 
@@ -696,7 +618,8 @@ codex "Generate matplotlib code to visualize [data description]"
 - Generate test code for research automation
 - Create data pipeline scripts
 - Build research tools and utilities
-""")
+"""
+        readme_path.write_text(readme_content)
         # Create config file
         config_path = commands_dir / "config.json"
         config_path.write_text("""{
