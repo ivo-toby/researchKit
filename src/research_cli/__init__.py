@@ -60,6 +60,13 @@ AGENT_CONFIG = {
         "cli_check": "opencode",
         "requires_cli": True,
         "install_url": "https://opencode.ai",
+    },
+    "codex": {
+        "name": "Codex CLI",
+        "commands_dir": ".codex",
+        "cli_check": "codex",
+        "requires_cli": True,
+        "install_url": "https://github.com/openai/codex",
     }
 }
 
@@ -596,6 +603,125 @@ When helping with research:
 """)
         tracker.add_step(f"Created {agent_config['name']} configuration with prompts")
 
+    # For Codex CLI, create configuration with environment setup
+    elif ai_agent == "codex":
+        readme_path = commands_dir / "README.md"
+        codex_home_path = str(project_dir / agent_config["commands_dir"])
+        readme_path.write_text(f"""# ResearchKit with Codex CLI
+
+This directory contains ResearchKit configuration for OpenAI Codex CLI.
+
+## Installation
+
+Install Codex CLI from: https://github.com/openai/codex
+
+## Environment Setup
+
+**IMPORTANT:** Set the CODEX_HOME environment variable to use this configuration:
+
+### Bash/Zsh
+Add to your `~/.bashrc` or `~/.zshrc`:
+```bash
+export CODEX_HOME="{codex_home_path}"
+```
+
+### Fish
+Add to your `~/.config/fish/config.fish`:
+```fish
+set -x CODEX_HOME "{codex_home_path}"
+```
+
+### PowerShell
+Add to your PowerShell profile:
+```powershell
+$env:CODEX_HOME = "{codex_home_path}"
+```
+
+Then restart your shell or run `source ~/.bashrc` (or equivalent).
+
+## ResearchKit Integration
+
+When working on research projects:
+1. Use the `.researchkit/` directory structure
+2. Follow the research workflow: Plan → Execute → Synthesize
+3. Maintain proper citations in `sources.md`
+4. Document findings in `findings.md`
+5. Create synthesis reports in `synthesis.md`
+
+## Research Commands
+
+Run these bash scripts to manage your research:
+
+```bash
+# Create a new research plan
+bash .researchkit/scripts/bash/plan.sh "Research Topic"
+
+# Set up execution
+bash .researchkit/scripts/bash/execute.sh
+
+# Generate synthesis
+bash .researchkit/scripts/bash/synthesize.sh
+```
+
+## Using Codex CLI for Research
+
+Codex can help with:
+- Code generation for data analysis
+- Research automation scripts
+- Data processing and transformation
+- Statistical analysis code
+- Visualization generation
+
+### Example Commands
+
+**Generate Analysis Code:**
+```bash
+codex "Write a Python script to analyze [data type]"
+```
+
+**Data Processing:**
+```bash
+codex "Create a script to clean and process this CSV data"
+```
+
+**Visualization:**
+```bash
+codex "Generate matplotlib code to visualize [data description]"
+```
+
+### Tips
+
+- Use Codex for research-related code generation
+- Ask Codex to help with data analysis scripts
+- Generate test code for research automation
+- Create data pipeline scripts
+- Build research tools and utilities
+""")
+        # Create config file
+        config_path = commands_dir / "config.json"
+        config_path.write_text("""{
+  "research_mode": true,
+  "context": "ResearchKit structured research project",
+  "files": {
+    "plan": ".researchkit/research/*/plan.md",
+    "findings": ".researchkit/research/*/findings.md",
+    "sources": ".researchkit/research/*/sources.md",
+    "synthesis": ".researchkit/research/*/synthesis.md"
+  },
+  "guidelines": [
+    "Follow research constitution",
+    "Maintain citation standards",
+    "Ensure code is well-documented",
+    "Generate reproducible analysis"
+  ]
+}
+""")
+        tracker.add_step(f"Created {agent_config['name']} configuration")
+
+        # Display environment setup message
+        console.print(f"\n[yellow]⚠  Important:[/yellow] Set CODEX_HOME environment variable:")
+        console.print(f"[cyan]   export CODEX_HOME=\"{codex_home_path}\"[/cyan]\n")
+
     # For other agents, create basic directory structure
     else:
         tracker.add_step(f"Created {agent_config['name']} directory structure")
@@ -604,7 +730,7 @@ When helping with research:
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Project name or '.' for current directory"),
-    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot, gemini, cursor, opencode)"),
+    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot, gemini, cursor, opencode, codex)"),
 ):
     """
     Initialize a new ResearchKit project with structured research workflow support.
