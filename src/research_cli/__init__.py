@@ -35,28 +35,28 @@ AGENT_CONFIG = {
     },
     "copilot": {
         "name": "GitHub Copilot",
-        "commands_dir": ".github/copilot",
+        "commands_dir": ".github/prompts",
         "cli_check": None,
         "requires_cli": False,
         "install_url": None,
     },
     "gemini": {
         "name": "Gemini CLI",
-        "commands_dir": ".gemini",
+        "commands_dir": ".gemini/commands",
         "cli_check": "gemini",
         "requires_cli": True,
         "install_url": "https://github.com/google-gemini/gemini-cli",
     },
     "cursor": {
         "name": "Cursor",
-        "commands_dir": ".cursor",
+        "commands_dir": ".cursor/commands",
         "cli_check": None,
         "requires_cli": False,
         "install_url": None,
     },
     "opencode": {
         "name": "OpenCode",
-        "commands_dir": ".opencode",
+        "commands_dir": ".opencode/commands",
         "cli_check": "opencode",
         "requires_cli": True,
         "install_url": "https://opencode.ai",
@@ -339,21 +339,54 @@ def create_agent_commands(project_dir: Path, ai_agent: str, tracker: StepTracker
         else:
             tracker.add_error("Claude command templates not found")
 
-    # For GitHub Copilot, create a README with instructions
+    # For GitHub Copilot, create custom prompt files
     elif ai_agent == "copilot":
+        # Copy command files as .prompt.md files from templates
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
+
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                # Convert researchkit_constitution.md to constitution.prompt.md
+                prompt_name = command_file.stem.replace("researchkit_", "")
+                dst = commands_dir / f"{prompt_name}.prompt.md"
+
+                # Copy the file content (already has frontmatter)
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created GitHub Copilot custom prompts")
+        else:
+            tracker.add_error("Command templates not found")
+
+        # Create README
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with GitHub Copilot
 
-This directory contains ResearchKit configuration for GitHub Copilot.
+This directory contains ResearchKit custom prompts for GitHub Copilot.
 
 ## Usage
 
-GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-powered code suggestions.
+GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-powered assistance.
+
+## Custom Prompts
+
+These custom prompts are available in Copilot Chat (reference with #prompt:):
+
+- `constitution.prompt.md` - Define research methodology and standards
+- `plan.prompt.md` - Create a structured research plan
+- `execute.prompt.md` - Execute research with proper documentation
+- `synthesize.prompt.md` - Generate comprehensive research report
+- `sources.prompt.md` - Manage bibliography and citations
+
+To use a custom prompt in Copilot Chat:
+1. Type `#prompt:` in the chat input
+2. Select the desired prompt from the list
+3. Or click the ➕ icon to add it as context
 
 {get_common_researchkit_sections()}
 
 ## Copilot Tips for Research
 
+- Use custom prompts above for guided research workflows
 - Ask Copilot to help format citations
 - Use Copilot to generate search query suggestions
 - Have Copilot help structure your findings
@@ -362,16 +395,39 @@ GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-po
         readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
-    # For Gemini CLI, create configuration and instructions
+    # For Gemini CLI, copy command files and create configuration
     elif ai_agent == "gemini":
+        # Copy slash command files from templates
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
+
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                dst = commands_dir / command_file.name
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created Gemini CLI slash commands")
+        else:
+            tracker.add_error("Command templates not found")
+
+        # Create README
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with Gemini CLI
 
-This directory contains ResearchKit configuration for Gemini CLI.
+This directory contains ResearchKit slash commands for Gemini CLI.
 
 ## Installation
 
 Install Gemini CLI from: https://github.com/google-gemini/gemini-cli
+
+## Slash Commands
+
+Use these commands in Gemini CLI:
+
+- `/researchkit.constitution` - Define research methodology and standards
+- `/researchkit.plan` - Create a structured research plan
+- `/researchkit.execute` - Execute research with proper documentation
+- `/researchkit.synthesize` - Generate comprehensive research report
+- `/researchkit.sources` - Manage bibliography and citations
 
 {get_common_researchkit_sections()}
 
@@ -384,31 +440,50 @@ Gemini CLI can help with:
 - Data analysis and interpretation
 - Source quality assessment
 
-Example commands:
-```bash
-# Ask Gemini to help refine your research question
-gemini chat "Help me refine this research question: [your question]"
+### Tips
 
-# Get help with citation formatting
-gemini chat "Format this source as APA citation: [source details]"
-
-# Summarize research findings
-gemini chat "Summarize these key points: [your findings]"
-```
+- Use the slash commands above for guided research workflows
+- Ask Gemini to help refine your research question
+- Get help with citation formatting
+- Request summaries of complex sources
+- Use Gemini for source quality assessment
 """
         readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
-    # For Cursor, create configuration with AI rules
+    # For Cursor, copy command files and create configuration with AI rules
     elif ai_agent == "cursor":
+        # Copy slash command files from templates
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
+
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                dst = commands_dir / command_file.name
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created Cursor slash commands")
+        else:
+            tracker.add_error("Command templates not found")
+
+        # Create README
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with Cursor
 
-This directory contains ResearchKit configuration for Cursor AI editor.
+This directory contains ResearchKit slash commands for Cursor AI editor.
 
 ## About Cursor
 
 Cursor is an AI-powered code editor built on VS Code with integrated AI assistance.
+
+## Slash Commands
+
+Use these commands in Cursor's AI chat:
+
+- `/researchkit.constitution` - Define research methodology and standards
+- `/researchkit.plan` - Create a structured research plan
+- `/researchkit.execute` - Execute research with proper documentation
+- `/researchkit.synthesize` - Generate comprehensive research report
+- `/researchkit.sources` - Manage bibliography and citations
 
 {get_common_researchkit_sections()}
 
@@ -423,14 +498,16 @@ Cursor's AI can help with:
 
 ### Tips
 
+- Use the slash commands above for guided research workflows
 - Use Cursor's chat to ask about citation formats
 - Highlight text and ask Cursor to refine or summarize
 - Use Cursor to help maintain consistent document structure
 - Ask Cursor to help verify citation completeness
 """
         readme_path.write_text(readme_content)
-        # Create .cursorrules file for AI context
-        cursorrules_path = commands_dir / ".cursorrules"
+
+        # Create .cursorrules file for AI context in parent directory
+        cursorrules_path = commands_dir.parent / ".cursorrules"
         cursorrules_path.write_text("""# ResearchKit Cursor AI Rules
 
 ## Project Context
@@ -468,16 +545,39 @@ This is a ResearchKit research project following structured research workflows.
 """)
         tracker.add_step(f"Created {agent_config['name']} configuration with .cursorrules")
 
-    # For OpenCode, create configuration and prompts
+    # For OpenCode, copy command files and create configuration and prompts
     elif ai_agent == "opencode":
+        # Copy slash command files from templates
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
+
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                dst = commands_dir / command_file.name
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created OpenCode slash commands")
+        else:
+            tracker.add_error("Command templates not found")
+
+        # Create README
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with OpenCode
 
-This directory contains ResearchKit configuration for OpenCode AI.
+This directory contains ResearchKit slash commands for OpenCode AI.
 
 ## Installation
 
 Install OpenCode from: https://opencode.ai
+
+## Slash Commands
+
+Use these commands in OpenCode's chat interface:
+
+- `/researchkit.constitution` - Define research methodology and standards
+- `/researchkit.plan` - Create a structured research plan
+- `/researchkit.execute` - Execute research with proper documentation
+- `/researchkit.synthesize` - Generate comprehensive research report
+- `/researchkit.sources` - Manage bibliography and citations
 
 {get_common_researchkit_sections()}
 
@@ -509,6 +609,7 @@ opencode "Summarize these research findings into key themes: [findings]"
 
 ### Tips
 
+- Use the slash commands above for guided research workflows
 - Use OpenCode to help structure your research documents
 - Ask for help with citation formatting
 - Request summaries of complex sources
@@ -516,8 +617,9 @@ opencode "Summarize these research findings into key themes: [findings]"
 - Use OpenCode to identify gaps in your research
 """
         readme_path.write_text(readme_content)
-        # Create prompts directory with research-specific prompts
-        prompts_dir = commands_dir / "prompts"
+
+        # Create prompts directory with research-specific prompts in parent directory
+        prompts_dir = commands_dir.parent / "prompts"
         prompts_dir.mkdir(exist_ok=True)
 
         research_prompt = prompts_dir / "research_assistant.txt"
