@@ -437,6 +437,8 @@ This document tracks all deliverables for the Ollama standalone agent implementa
 
 ### Manual Testing Checklist
 
+**Ollama Agent Functionality:**
+
 - [ ] Test: Fresh folder, no git
 - [ ] Test: Git repo exists, no .researchkit/
 - [ ] Test: .researchkit/ exists, no config
@@ -463,6 +465,17 @@ This document tracks all deliverables for the Ollama standalone agent implementa
 - [ ] Test: Error handling - PDF parse failure (malformed PDF)
 - [ ] Test: OLLAMA_URL environment variable
 - [ ] Test: EDITOR environment variable
+
+**Backward Compatibility & Non-Interference:**
+
+- [ ] Test: `research init` still works after installing ollama_agent
+- [ ] Test: `research check` still works after installing ollama_agent
+- [ ] Test: Both `research` and `research-ollama` commands available
+- [ ] Test: Existing .researchkit/ projects work with both workflows
+- [ ] Test: Claude Code slash commands still work
+- [ ] Test: Ollama config file doesn't interfere with existing workflows
+- [ ] Test: Can use `research init` and `research-ollama` in different projects
+- [ ] Test: Bash scripts (plan.sh, execute.sh, synthesize.sh) work for both
 
 ## Documentation
 

@@ -1108,6 +1108,69 @@ The implementation will be considered successful when:
 
 **Total**: ~9 days of development
 
+## Backward Compatibility & Non-Interference
+
+The Ollama standalone agent is designed to **coexist** with the existing researchKit functionality without any interference:
+
+### Separation of Concerns
+
+1. **Separate Package Structure**
+   - Existing: `src/research_cli/` (unchanged)
+   - New: `src/ollama_agent/` (isolated package)
+   - No modifications to existing `research_cli` code
+
+2. **Separate CLI Commands**
+   - Existing: `research init`, `research check`
+   - New: `research-ollama` (completely separate command)
+   - Both commands can be installed and used simultaneously
+
+3. **Shared Infrastructure** (Non-Breaking)
+   - Both use `.researchkit/` folder structure
+   - Both use the same bash scripts (`plan.sh`, `execute.sh`, `synthesize.sh`)
+   - Both use the same templates (plan, execution, synthesis, constitution)
+   - Ollama agent adds: `.researchkit/config/ollama.json` (new file, doesn't affect existing workflows)
+
+4. **Configuration Isolation**
+   - Existing researchKit: No config file currently
+   - Ollama agent: `.researchkit/config/ollama.json` (new, isolated)
+   - No overlap or conflict
+
+5. **Entry Point Separation**
+   ```toml
+   [project.scripts]
+   research = "research_cli:main"          # Existing (unchanged)
+   research-ollama = "ollama_agent.cli:main"  # New (additive)
+   ```
+
+### Compatibility Guarantees
+
+✅ **Existing workflows continue to work exactly as before**
+- `research init` and `research check` remain unchanged
+- Claude Code slash commands (`/researchkit.*`) unaffected
+- All existing bash scripts work identically
+- No changes to template files
+
+✅ **Users can choose their workflow**
+- Use `research init` + Claude Code (existing workflow)
+- Use `research-ollama` (new Ollama workflow)
+- Use both in different projects
+- No conflicts between the two approaches
+
+✅ **Shared benefits**
+- Any improvements to bash scripts benefit both
+- Template updates work for both
+- Both use the same git-based research project structure
+
+### Migration Path (Optional)
+
+Users are **not required** to migrate. However, if they want to use Ollama:
+
+1. Install `ollama` and pull a tool-compatible model
+2. Run `research-ollama` instead of `research init`
+3. Continue using all researchKit features with Ollama as the AI backend
+
+The existing Claude Code workflow remains fully supported and unchanged.
+
 ## Security Considerations
 
 1. **Ollama URL Validation**: Ensure URL is valid HTTP/HTTPS before connecting
