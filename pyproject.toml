@@ -22,6 +22,12 @@ dependencies = [
     "duckduckgo-search>=4.0.0",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+
 [project.scripts]
 research = "research_cli:main"
 research-ollama = "ollama_agent.cli:main"
