@@ -1,7 +1,7 @@
 """Web search tool using DuckDuckGo."""
 
 from typing import Any, Dict
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 
 def web_search(query: str, max_results: int = 10) -> Dict[str, Any]:

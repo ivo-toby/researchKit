@@ -897,13 +897,13 @@ dependencies = [
     "beautifulsoup4>=4.12.0",     # For HTML parsing
     "lxml>=4.9.0",                # For efficient HTML/XML parsing
     "pypdf>=3.17.0",              # For PDF parsing
-    "duckduckgo-search>=4.0.0",   # For web search (DuckDuckGo)
+    "ddgs>=1.0.0",                # For web search (DuckDuckGo)
     "markdownify>=0.11.0",        # For HTML to Markdown conversion
 ]
 ```
 
 **Alternative search backends** (choose one):
-- `duckduckgo-search` - No API key required, privacy-focused
+- `ddgs` - No API key required, privacy-focused (formerly duckduckgo-search)
 - `searxng` - Self-hosted search aggregator
 - `tavily-python` - Requires API key, research-focused
 
@@ -1274,7 +1274,7 @@ Approve plan? [y]es / [e]dit / [f]eedback: y
 - **Updated**:
   - Model selection now filters for tool-compatible models only
   - Architecture diagram includes Research Tools component
-  - Dependencies updated with beautifulsoup4, pypdf, duckduckgo-search
+  - Dependencies updated with beautifulsoup4, pypdf, ddgs
   - Timeline extended to 9 days to account for tool implementation
   - Success criteria updated with tool-related requirements
 - **Future Enhancements**:
