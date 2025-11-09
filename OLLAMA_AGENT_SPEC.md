@@ -30,20 +30,34 @@ This document specifies a lightweight standalone agent that uses Ollama for LLM 
 │   Manager   │  │   Engine    │  │ Orchestrator│
 └──────┬──────┘  └──────┬──────┘  └──────┬──────┘
        │                │                │
+       │                ├────────────────┤
+       │                │                │
        ▼                ▼                ▼
 ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
 │   Config    │  │   Ollama    │  │    Bash     │
-│   Manager   │  │     API     │  │   Scripts   │
-└─────────────┘  └─────────────┘  └─────────────┘
+│   Manager   │  │  API Client │  │   Scripts   │
+└─────────────┘  └──────┬──────┘  └─────────────┘
+                        │
+                        │ Tool Calling
+                        │
+                        ▼
+                 ┌─────────────┐
+                 │Research Tools│
+                 ├─────────────┤
+                 │ web_search  │
+                 │ fetch_url   │
+                 │ parse_pdf   │
+                 └─────────────┘
 ```
 
 ### Component Responsibilities
 
 1. **Environment Manager**: Checks git initialization, folder structure, Ollama availability
 2. **Config Manager**: Handles `.researchkit/config/ollama.json` storage and retrieval
-3. **Conversation Engine**: Manages multi-turn conversations with user approval loops
-4. **Ollama API Client**: Handles HTTP requests to Ollama API
-5. **Workflow Orchestrator**: Coordinates constitution → plan → execute → synthesize phases
+3. **Ollama API Client**: Handles HTTP requests to Ollama API with tool calling support
+4. **Research Tools**: Provides web_search, fetch_url, and parse_pdf capabilities
+5. **Conversation Engine**: Manages multi-turn conversations, tool execution, and user approval loops
+6. **Workflow Orchestrator**: Coordinates constitution → plan → execute → synthesize phases
 
 ## User Flows
 
@@ -63,13 +77,16 @@ This document specifies a lightweight standalone agent that uses Ollama for LLM 
 5. If missing:
    → "Initialize researchKit in this folder? [y/N]"
    → If yes: run initialization (create folder structure)
-6. Query Ollama for available models:
+6. Query Ollama for available tool-compatible models:
    → GET http://localhost:11434/api/tags
-   → Display list: "Select a model to use:"
+   → Filter for models that support tool calling
+   → Display list: "Select a model to use (tool-compatible only):"
       1. llama3.2:latest
-      2. mistral:latest
-      3. codellama:latest
-   → User selects (1-3)
+      2. llama3.1:latest
+      3. mistral-nemo:latest
+      4. qwen2.5:latest
+   → User selects (1-4)
+   → If no tool-compatible models: Suggest "ollama pull llama3.2"
 7. Save config to .researchkit/config/ollama.json:
    {
      "ollama_url": "http://localhost:11434",
@@ -142,14 +159,18 @@ This document specifies a lightweight standalone agent that uses Ollama for LLM 
 1. Call bash script: .researchkit/scripts/bash/execute.sh
    → Creates: findings.md from execution-template.md
 2. Agent reads plan.md to understand research objectives
-3. Agent conducts research with Ollama:
+3. Agent conducts research with Ollama using tools:
    - For each research question in plan:
-     → Agent proposes search queries
-     → User approves: "Search for: '[query]'? [y]es / [e]dit / [s]kip"
-     → Agent documents findings in findings.md
+     → Agent uses web_search tool to find relevant sources
+     → Agent uses fetch_url tool to extract content from web pages
+     → Agent uses parse_pdf tool to analyze research papers
+     → User sees: "🔍 Searching for: '[query]'"
+     → User sees: "📄 Fetching: [url]"
+     → User sees: "📑 Parsing PDF: [url]"
+     → Agent synthesizes findings from tool results
      → After each finding:
         "Document this finding? [y]es / [e]dit / [f]eedback / [s]kip"
-4. Agent updates sources.md with bibliography
+4. Agent updates sources.md with bibliography (URLs and PDFs)
 5. Display findings summary
 6. User approval loop:
    → "Approve findings? [y]es / [e]dit / [f]eedback"
@@ -188,9 +209,14 @@ researchKit/
 │       ├── cli.py                   # Main CLI entry point
 │       ├── environment.py           # Environment checking
 │       ├── config.py                # Config management
-│       ├── ollama_client.py         # Ollama API client
+│       ├── ollama_client.py         # Ollama API client with tool calling
 │       ├── conversation.py          # Conversation engine
 │       ├── workflow.py              # Workflow orchestrator
+│       ├── tools/
+│       │   ├── __init__.py
+│       │   ├── web_search.py        # Web search tool
+│       │   ├── url_fetch.py         # URL fetching tool
+│       │   └── pdf_parser.py        # PDF download and parsing tool
 │       └── prompts/
 │           ├── __init__.py
 │           ├── constitution.py      # Constitution phase prompts
@@ -278,16 +304,39 @@ class ConfigManager:
 
 ```python
 class OllamaClient:
-    """HTTP client for Ollama API."""
+    """HTTP client for Ollama API with tool calling support."""
+
+    # Models known to support tool calling (function calling)
+    TOOL_COMPATIBLE_MODELS = [
+        "llama3.2",
+        "llama3.1",
+        "mistral-nemo",
+        "qwen2.5",
+        "command-r",
+        "firefunction",
+    ]
 
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url
 
-    def list_models(self) -> List[str]:
+    def list_models(self, tool_compatible_only: bool = True) -> List[str]:
         """Get available models from Ollama.
 
         GET /api/tags
-        Returns: ["llama3.2:latest", "mistral:latest", ...]
+
+        Args:
+            tool_compatible_only: If True, filter to only models that support tools
+
+        Returns: ["llama3.2:latest", "mistral-nemo:latest", ...]
+        """
+
+    def check_model_supports_tools(self, model: str) -> bool:
+        """Check if a model supports tool calling.
+
+        Args:
+            model: Model name (e.g., "llama3.2:latest")
+
+        Returns: True if model supports tools
         """
 
     def generate(
@@ -313,9 +362,10 @@ class OllamaClient:
         model: str,
         messages: List[Dict[str, str]],
         temperature: float = 0.7,
-        stream: bool = False
-    ) -> str:
-        """Chat completion from Ollama.
+        stream: bool = False,
+        tools: Optional[List[Dict]] = None
+    ) -> Dict[str, Any]:
+        """Chat completion from Ollama with tool calling support.
 
         POST /api/chat
         {
@@ -324,21 +374,273 @@ class OllamaClient:
                 {"role": "user", "content": "..."}
             ],
             "temperature": 0.7,
-            "stream": false
+            "stream": false,
+            "tools": [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "web_search",
+                        "description": "Search the web for information",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "query": {
+                                    "type": "string",
+                                    "description": "Search query"
+                                }
+                            },
+                            "required": ["query"]
+                        }
+                    }
+                }
+            ]
         }
+
+        Returns:
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "...",
+                    "tool_calls": [
+                        {
+                            "function": {
+                                "name": "web_search",
+                                "arguments": {"query": "..."}
+                            }
+                        }
+                    ]
+                }
+            }
+        """
+
+    def execute_tool_call(
+        self,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        tool_registry: Dict[str, Callable]
+    ) -> str:
+        """Execute a tool call and return the result.
+
+        Args:
+            tool_name: Name of the tool to execute
+            arguments: Arguments to pass to the tool
+            tool_registry: Dictionary mapping tool names to functions
+
+        Returns: Tool execution result as string
         """
 ```
 
-#### 4. Conversation Engine (`conversation.py`)
+#### 4. Research Tools (`tools/`)
+
+The agent provides three core research tools that the LLM can call:
+
+##### 4.1 Web Search (`tools/web_search.py`)
+
+```python
+def web_search(query: str, max_results: int = 10) -> Dict[str, Any]:
+    """Search the web for information.
+
+    Uses a search API (DuckDuckGo, SearXNG, or similar) to find relevant
+    web pages for the research query.
+
+    Args:
+        query: Search query string
+        max_results: Maximum number of results to return
+
+    Returns:
+        {
+            "results": [
+                {
+                    "title": "...",
+                    "url": "...",
+                    "snippet": "...",
+                    "source": "..."
+                }
+            ],
+            "query": "original query",
+            "count": 10
+        }
+    """
+
+def get_tool_definition() -> Dict:
+    """Return OpenAI-compatible tool definition for web_search."""
+    return {
+        "type": "function",
+        "function": {
+            "name": "web_search",
+            "description": "Search the web for information on a topic",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "The search query"
+                    },
+                    "max_results": {
+                        "type": "integer",
+                        "description": "Maximum number of results (default 10)",
+                        "default": 10
+                    }
+                },
+                "required": ["query"]
+            }
+        }
+    }
+```
+
+##### 4.2 URL Fetch (`tools/url_fetch.py`)
+
+```python
+def fetch_url(url: str, extract_text: bool = True) -> Dict[str, Any]:
+    """Fetch and parse content from a URL.
+
+    Downloads web page content and optionally extracts clean text
+    (removing HTML tags, scripts, navigation, etc.).
+
+    Args:
+        url: URL to fetch
+        extract_text: If True, extract clean text from HTML
+
+    Returns:
+        {
+            "url": "...",
+            "title": "...",
+            "content": "extracted text content",
+            "content_type": "text/html",
+            "status_code": 200,
+            "word_count": 1234
+        }
+    """
+
+def get_tool_definition() -> Dict:
+    """Return OpenAI-compatible tool definition for fetch_url."""
+    return {
+        "type": "function",
+        "function": {
+            "name": "fetch_url",
+            "description": "Fetch and extract text content from a URL",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "The URL to fetch"
+                    },
+                    "extract_text": {
+                        "type": "boolean",
+                        "description": "Extract clean text from HTML (default true)",
+                        "default": True
+                    }
+                },
+                "required": ["url"]
+            }
+        }
+    }
+```
+
+##### 4.3 PDF Parser (`tools/pdf_parser.py`)
+
+```python
+def parse_pdf(url: str, save_path: Optional[str] = None) -> Dict[str, Any]:
+    """Download and parse a PDF document.
+
+    Downloads PDF from URL, extracts text content, and optionally
+    saves to local file system for reference.
+
+    Args:
+        url: URL to PDF document
+        save_path: Optional local path to save PDF
+
+    Returns:
+        {
+            "url": "...",
+            "text": "extracted text content",
+            "pages": 42,
+            "metadata": {
+                "title": "...",
+                "author": "...",
+                "created": "..."
+            },
+            "saved_path": "/path/to/file.pdf" or None,
+            "word_count": 5678
+        }
+    """
+
+def get_tool_definition() -> Dict:
+    """Return OpenAI-compatible tool definition for parse_pdf."""
+    return {
+        "type": "function",
+        "function": {
+            "name": "parse_pdf",
+            "description": "Download and extract text from a PDF document",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "URL to the PDF document"
+                    },
+                    "save_path": {
+                        "type": "string",
+                        "description": "Optional path to save the PDF locally"
+                    }
+                },
+                "required": ["url"]
+            }
+        }
+    }
+```
+
+##### 4.4 Tool Registry (`tools/__init__.py`)
+
+```python
+"""Research tools for the Ollama agent."""
+
+from .web_search import web_search, get_tool_definition as web_search_def
+from .url_fetch import fetch_url, get_tool_definition as url_fetch_def
+from .pdf_parser import parse_pdf, get_tool_definition as pdf_parser_def
+
+# Tool registry maps tool names to their implementations
+TOOL_REGISTRY = {
+    "web_search": web_search,
+    "fetch_url": fetch_url,
+    "parse_pdf": parse_pdf,
+}
+
+# Tool definitions for Ollama API
+TOOL_DEFINITIONS = [
+    web_search_def(),
+    url_fetch_def(),
+    pdf_parser_def(),
+]
+
+__all__ = [
+    "TOOL_REGISTRY",
+    "TOOL_DEFINITIONS",
+    "web_search",
+    "fetch_url",
+    "parse_pdf",
+]
+```
+
+#### 5. Conversation Engine (`conversation.py`)
 
 ```python
 class ConversationEngine:
-    """Manages interactive conversations with approval loops."""
+    """Manages interactive conversations with approval loops and tool execution."""
 
-    def __init__(self, ollama_client: OllamaClient, config: OllamaConfig):
+    def __init__(
+        self,
+        ollama_client: OllamaClient,
+        config: OllamaConfig,
+        tool_registry: Dict[str, Callable],
+        tool_definitions: List[Dict]
+    ):
         self.client = ollama_client
         self.config = config
         self.messages: List[Dict[str, str]] = []
+        self.tool_registry = tool_registry
+        self.tool_definitions = tool_definitions
 
     def add_system_message(self, content: str) -> None:
         """Add system message to conversation context."""
@@ -346,8 +648,32 @@ class ConversationEngine:
     def add_user_message(self, content: str) -> None:
         """Add user message to conversation context."""
 
-    def generate_response(self) -> str:
-        """Generate AI response using current conversation context."""
+    def generate_response(self, use_tools: bool = True) -> str:
+        """Generate AI response using current conversation context.
+
+        Args:
+            use_tools: If True, provide tools to the model
+
+        Returns: Final response after tool execution (if any)
+
+        Flow:
+        1. Call Ollama with tools
+        2. If response includes tool_calls:
+           a. Execute each tool
+           b. Add tool results to messages
+           c. Call Ollama again
+           d. Repeat until no more tool calls
+        3. Return final text response
+        """
+
+    def execute_tool_calls(self, tool_calls: List[Dict]) -> List[Dict]:
+        """Execute a list of tool calls and return results.
+
+        Args:
+            tool_calls: List of tool call objects from Ollama
+
+        Returns: List of tool result messages
+        """
 
     def approval_loop(
         self,
@@ -362,9 +688,12 @@ class ConversationEngine:
 
     def display(self, content: str, title: str = "") -> None:
         """Display content with formatting."""
+
+    def clear_history(self) -> None:
+        """Reset message history for new phase."""
 ```
 
-#### 5. Workflow Orchestrator (`workflow.py`)
+#### 6. Workflow Orchestrator (`workflow.py`)
 
 ```python
 class WorkflowOrchestrator:
@@ -409,7 +738,7 @@ class WorkflowOrchestrator:
         """Run complete workflow: constitution → plan → execute → synthesize."""
 ```
 
-#### 6. CLI Entry Point (`cli.py`)
+#### 7. CLI Entry Point (`cli.py`)
 
 ```python
 def main():
@@ -438,7 +767,16 @@ def main():
     if not config_mgr.exists():
         # First-time setup: model selection
         client = OllamaClient()
-        models = client.list_models()
+        # Only show models that support tool calling
+        models = client.list_models(tool_compatible_only=True)
+
+        if not models:
+            print("❌ No tool-compatible models found.")
+            print("   Install a compatible model:")
+            print("   ollama pull llama3.2")
+            print("   ollama pull mistral-nemo")
+            sys.exit(1)
+
         selected_model = prompt_model_selection(models)
 
         config = OllamaConfig(
@@ -457,9 +795,16 @@ def main():
     else:
         config = config_mgr.load()
 
-    # 3. Start research workflow
+    # 3. Start research workflow with tools
+    from ollama_agent.tools import TOOL_REGISTRY, TOOL_DEFINITIONS
+
     client = OllamaClient(config.ollama_url)
-    conversation = ConversationEngine(client, config)
+    conversation = ConversationEngine(
+        client,
+        config,
+        TOOL_REGISTRY,
+        TOOL_DEFINITIONS
+    )
     workflow = WorkflowOrchestrator(conversation, config)
 
     # Prompt for research topic
@@ -547,15 +892,25 @@ Add to `pyproject.toml`:
 ```toml
 [project]
 dependencies = [
-    "requests>=2.31.0",      # For Ollama HTTP API
-    "rich>=13.0.0",          # For terminal formatting
-    "click>=8.1.0",          # For CLI (if needed)
+    "requests>=2.31.0",           # For Ollama HTTP API and URL fetching
+    "rich>=13.0.0",               # For terminal formatting
+    "beautifulsoup4>=4.12.0",     # For HTML parsing
+    "lxml>=4.9.0",                # For efficient HTML/XML parsing
+    "pypdf>=3.17.0",              # For PDF parsing
+    "duckduckgo-search>=4.0.0",   # For web search (DuckDuckGo)
+    "markdownify>=0.11.0",        # For HTML to Markdown conversion
 ]
 ```
+
+**Alternative search backends** (choose one):
+- `duckduckgo-search` - No API key required, privacy-focused
+- `searxng` - Self-hosted search aggregator
+- `tavily-python` - Requires API key, research-focused
 
 ### External Dependencies
 
 - **Ollama**: Must be installed and running (`ollama serve`)
+  - **Tool-compatible model required**: llama3.2, llama3.1, mistral-nemo, qwen2.5, command-r, or firefunction
 - **Git**: Required for version control
 - **Bash**: For existing workflow scripts
 
@@ -667,15 +1022,63 @@ def test_full_workflow(tmp_path):
 
 ## Future Enhancements
 
-### Phase 2 Features (Not in Initial Implementation)
+### Phase 2 Features (Post-MVP)
 
-1. **Web Search Integration**: Add web scraping for research execution
-2. **Citation Management**: Automatic citation formatting with biblatex
-3. **Multi-Model Support**: Switch models mid-conversation
-4. **Research Templates**: Pre-defined research types (literature review, experimental, etc.)
-5. **Collaborative Research**: Multi-user research with git branches
-6. **Export Formats**: PDF, HTML, LaTeX output
-7. **Research Analytics**: Track time, sources, iterations per project
+1. **Tool Calling for Non-Native Models**: Implement tool calling wrapper for models that don't natively support it
+   - Parse function call syntax from text output
+   - Provide few-shot examples for tool usage
+   - Support models like codellama, deepseek, etc.
+
+2. **MCP (Model Context Protocol) Support**: Integrate with MCP servers for extended capabilities
+   - File system access via MCP
+   - Database connections via MCP
+   - Custom tool servers via MCP
+   - Standardized tool interface
+
+3. **Citation Management**: Automatic citation formatting with biblatex
+   - BibTeX generation from sources
+   - Citation style selection (APA, MLA, Chicago)
+   - Automatic in-text citations
+
+4. **Multi-Model Support**: Switch models mid-conversation
+   - Different models for different phases
+   - Model comparison mode
+   - Cost/performance optimization
+
+5. **Research Templates**: Pre-defined research types
+   - Literature review template
+   - Experimental research template
+   - Meta-analysis template
+   - Technical evaluation template
+
+6. **Collaborative Research**: Multi-user research with git branches
+   - Shared research projects
+   - Branch-based collaboration
+   - Research review workflow
+
+7. **Export Formats**: Multiple output formats
+   - PDF generation (via LaTeX or WeasyPrint)
+   - HTML with styling
+   - LaTeX academic paper format
+   - Jupyter notebook format
+
+8. **Research Analytics**: Track research metrics
+   - Time spent per phase
+   - Number of sources consulted
+   - Iteration count per phase
+   - Research velocity tracking
+
+9. **Advanced Search Features**:
+   - Academic paper search (arXiv, Google Scholar, PubMed)
+   - Patent search
+   - News archive search
+   - Social media monitoring
+
+10. **Multimodal Research**:
+    - Image analysis for research
+    - Chart/graph extraction from papers
+    - Video content analysis
+    - Audio transcription and analysis
 
 ## Success Criteria
 
@@ -688,16 +1091,22 @@ The implementation will be considered successful when:
 5. ✅ Error messages are helpful and guide users to resolution
 6. ✅ No external AI service required (fully local with Ollama)
 7. ✅ Compatible with existing researchKit bash scripts and templates
+8. ✅ **Tool calling works**: Agent can use web_search, fetch_url, and parse_pdf tools
+9. ✅ **Only tool-compatible models shown**: Model selection filters for function calling support
+10. ✅ **Web research functional**: Agent can search, fetch URLs, and parse PDFs during execution phase
+11. ✅ **Sources tracked**: All URLs and PDFs added to sources.md automatically
 
 ## Timeline Estimate
 
 - **Phase 1**: Core infrastructure (environment, config, client) - 1 day
-- **Phase 2**: Conversation engine and approval loops - 1 day
-- **Phase 3**: Workflow orchestrator and phase prompts - 2 days
-- **Phase 4**: CLI integration and testing - 1 day
-- **Phase 5**: Documentation and refinement - 1 day
+- **Phase 2**: Tool implementation (web_search, fetch_url, parse_pdf) - 1.5 days
+- **Phase 3**: Ollama tool calling integration - 1 day
+- **Phase 4**: Conversation engine with tool execution - 1.5 days
+- **Phase 5**: Workflow orchestrator and phase prompts - 2 days
+- **Phase 6**: CLI integration and testing - 1 day
+- **Phase 7**: Documentation and refinement - 1 day
 
-**Total**: ~6 days of development
+**Total**: ~9 days of development
 
 ## Security Considerations
 
@@ -786,6 +1195,29 @@ Approve plan? [y]es / [e]dit / [f]eedback: y
 
 ---
 
-**Document Version**: 1.0
+**Document Version**: 2.0
 **Created**: 2025-11-09
+**Updated**: 2025-11-09
 **Author**: Specification for Ollama Agent Integration
+
+## Changelog
+
+### Version 2.0 (2025-11-09)
+- **Added MVP Features**:
+  - Tool calling support (function calling) for Ollama models
+  - Web search tool (web_search)
+  - URL fetching tool (fetch_url)
+  - PDF parsing tool (parse_pdf)
+- **Updated**:
+  - Model selection now filters for tool-compatible models only
+  - Architecture diagram includes Research Tools component
+  - Dependencies updated with beautifulsoup4, pypdf, duckduckgo-search
+  - Timeline extended to 9 days to account for tool implementation
+  - Success criteria updated with tool-related requirements
+- **Future Enhancements**:
+  - Added MCP (Model Context Protocol) support
+  - Added tool calling for non-native models
+  - Reorganized and expanded future feature list
+
+### Version 1.0 (2025-11-09)
+- Initial specification

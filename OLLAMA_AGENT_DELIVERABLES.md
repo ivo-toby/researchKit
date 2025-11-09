@@ -13,9 +13,14 @@ This document tracks all deliverables for the Ollama standalone agent implementa
 - [ ] Create `src/ollama_agent/cli.py` - Main CLI entry point
 - [ ] Create `src/ollama_agent/environment.py` - Environment checking
 - [ ] Create `src/ollama_agent/config.py` - Configuration management
-- [ ] Create `src/ollama_agent/ollama_client.py` - Ollama API client
-- [ ] Create `src/ollama_agent/conversation.py` - Conversation engine
+- [ ] Create `src/ollama_agent/ollama_client.py` - Ollama API client with tool calling
+- [ ] Create `src/ollama_agent/conversation.py` - Conversation engine with tool execution
 - [ ] Create `src/ollama_agent/workflow.py` - Workflow orchestrator
+- [ ] Create `src/ollama_agent/tools/` directory
+- [ ] Create `src/ollama_agent/tools/__init__.py` - Tool registry
+- [ ] Create `src/ollama_agent/tools/web_search.py` - Web search tool
+- [ ] Create `src/ollama_agent/tools/url_fetch.py` - URL fetching tool
+- [ ] Create `src/ollama_agent/tools/pdf_parser.py` - PDF parsing tool
 - [ ] Create `src/ollama_agent/prompts/` directory
 - [ ] Create `src/ollama_agent/prompts/__init__.py`
 - [ ] Create `src/ollama_agent/prompts/constitution.py` - Constitution prompts
@@ -92,16 +97,25 @@ This document tracks all deliverables for the Ollama standalone agent implementa
 
 #### Class: `OllamaClient`
 
+- [ ] Class constant: `TOOL_COMPATIBLE_MODELS`
+  - List of models that support tool calling
+  - ["llama3.2", "llama3.1", "mistral-nemo", "qwen2.5", "command-r", "firefunction"]
+
 - [ ] Constructor: `__init__(base_url: str)`
   - Store base URL
   - Initialize session if needed
 
-- [ ] Method: `list_models() -> List[str]`
+- [ ] Method: `list_models(tool_compatible_only: bool = True) -> List[str]`
   - GET request to `/api/tags`
   - Parse response JSON
   - Extract model names
+  - Filter for tool-compatible models if requested
   - Handle errors (connection, timeout, invalid JSON)
   - Return list of model names
+
+- [ ] Method: `check_model_supports_tools(model: str) -> bool`
+  - Check if model name matches any in TOOL_COMPATIBLE_MODELS
+  - Return True if compatible, False otherwise
 
 - [ ] Method: `generate(model, prompt, temperature, stream) -> str`
   - POST request to `/api/generate`
@@ -110,25 +124,82 @@ This document tracks all deliverables for the Ollama standalone agent implementa
   - Parse response
   - Return generated text
 
-- [ ] Method: `chat(model, messages, temperature, stream) -> str`
+- [ ] Method: `chat(model, messages, temperature, stream, tools) -> Dict[str, Any]`
   - POST request to `/api/chat`
   - Format messages array
+  - Include tools parameter if provided
   - Handle conversation context
-  - Parse response
-  - Return assistant message
+  - Parse response (including tool_calls if present)
+  - Return full response dict with message and tool_calls
+
+- [ ] Method: `execute_tool_call(tool_name, arguments, tool_registry) -> str`
+  - Look up tool in registry
+  - Execute tool with arguments
+  - Handle tool execution errors
+  - Return result as string
 
 - [ ] Error handling:
   - Connection errors
   - Timeout errors
   - Invalid responses
   - Model not found errors
+  - Tool execution errors
 
-### 5. Conversation Engine (`conversation.py`)
+### 5. Research Tools (`tools/`)
+
+#### Tool Registry (`tools/__init__.py`)
+
+- [ ] Import all tool functions
+- [ ] Create `TOOL_REGISTRY` dict mapping names to functions
+- [ ] Create `TOOL_DEFINITIONS` list with OpenAI-compatible tool schemas
+- [ ] Export all tools and registries
+
+#### Web Search Tool (`tools/web_search.py`)
+
+- [ ] Function: `web_search(query: str, max_results: int = 10) -> Dict[str, Any]`
+  - Implement DuckDuckGo search integration
+  - Return results with title, URL, snippet, source
+  - Handle search errors gracefully
+  - Limit results to max_results
+
+- [ ] Function: `get_tool_definition() -> Dict`
+  - Return OpenAI-compatible function schema
+  - Include parameter descriptions
+  - Specify required parameters
+
+#### URL Fetch Tool (`tools/url_fetch.py`)
+
+- [ ] Function: `fetch_url(url: str, extract_text: bool = True) -> Dict[str, Any]`
+  - Download page content with requests
+  - Parse HTML with BeautifulSoup
+  - Extract clean text (remove scripts, nav, etc.)
+  - Return URL, title, content, metadata
+  - Handle HTTP errors, timeouts
+
+- [ ] Function: `get_tool_definition() -> Dict`
+  - Return OpenAI-compatible function schema
+  - Document extract_text parameter
+
+#### PDF Parser Tool (`tools/pdf_parser.py`)
+
+- [ ] Function: `parse_pdf(url: str, save_path: Optional[str] = None) -> Dict[str, Any]`
+  - Download PDF from URL
+  - Extract text with pypdf
+  - Extract metadata (title, author, created date)
+  - Optionally save to local path
+  - Return text, page count, metadata
+  - Handle malformed PDFs, download errors
+
+- [ ] Function: `get_tool_definition() -> Dict`
+  - Return OpenAI-compatible function schema
+  - Document save_path parameter
+
+### 6. Conversation Engine (`conversation.py`)
 
 #### Class: `ConversationEngine`
 
-- [ ] Constructor: `__init__(ollama_client, config)`
-  - Store client and config
+- [ ] Constructor: `__init__(ollama_client, config, tool_registry, tool_definitions)`
+  - Store client, config, tool registry, and tool definitions
   - Initialize message history
 
 - [ ] Method: `add_system_message(content: str) -> None`
@@ -137,10 +208,24 @@ This document tracks all deliverables for the Ollama standalone agent implementa
 - [ ] Method: `add_user_message(content: str) -> None`
   - Append user message to history
 
-- [ ] Method: `generate_response() -> str`
-  - Call ollama_client.chat with message history
-  - Append assistant response to history
-  - Return response text
+- [ ] Method: `generate_response(use_tools: bool = True) -> str`
+  - Call ollama_client.chat with message history and tools
+  - If response contains tool_calls:
+    - Execute each tool call
+    - Add tool results to message history
+    - Call ollama_client.chat again
+    - Repeat until no more tool calls
+  - Append final assistant response to history
+  - Return final response text
+
+- [ ] Method: `execute_tool_calls(tool_calls: List[Dict]) -> List[Dict]`
+  - For each tool call:
+    - Extract tool name and arguments
+    - Look up tool in registry
+    - Execute tool function
+    - Display tool execution to user (e.g., "🔍 Searching for: query")
+    - Collect result
+  - Return list of tool result messages
 
 - [ ] Method: `approval_loop(content, prompt, allow_edit) -> Tuple[str, bool]`
   - Display content to user
@@ -161,7 +246,7 @@ This document tracks all deliverables for the Ollama standalone agent implementa
 - [ ] Method: `clear_history() -> None`
   - Reset message history for new phase
 
-### 6. Workflow Orchestrator (`workflow.py`)
+### 7. Workflow Orchestrator (`workflow.py`)
 
 #### Class: `WorkflowOrchestrator`
 
@@ -317,14 +402,26 @@ This document tracks all deliverables for the Ollama standalone agent implementa
 
 - [ ] Create `tests/test_ollama_client.py`
   - Test model listing (with mock)
+  - Test model filtering for tool compatibility
   - Test generate method (with mock)
   - Test chat method (with mock)
+  - Test chat with tools (with mock)
+  - Test tool execution
   - Test error handling
+
+- [ ] Create `tests/test_tools.py`
+  - Test web_search with mock DuckDuckGo
+  - Test fetch_url with mock requests
+  - Test parse_pdf with mock PDF file
+  - Test tool definition schemas
+  - Test error handling in each tool
 
 - [ ] Create `tests/test_conversation.py`
   - Test message history management
   - Test approval loop logic (with mock input)
   - Test display formatting
+  - Test tool execution in conversation flow
+  - Test multi-turn tool calling
 
 - [ ] Create `tests/test_workflow.py`
   - Test individual phase execution (with mocks)
@@ -344,18 +441,26 @@ This document tracks all deliverables for the Ollama standalone agent implementa
 - [ ] Test: Git repo exists, no .researchkit/
 - [ ] Test: .researchkit/ exists, no config
 - [ ] Test: Config exists, returning user
-- [ ] Test: Model selection flow
+- [ ] Test: Model selection flow (tool-compatible models only)
+- [ ] Test: No tool-compatible models available
 - [ ] Test: Constitution approval loop
 - [ ] Test: Constitution edit mode
 - [ ] Test: Constitution feedback loop
 - [ ] Test: Plan generation
 - [ ] Test: Plan approval/feedback
-- [ ] Test: Execute phase workflow
+- [ ] Test: Execute phase workflow with tools
+- [ ] Test: Web search tool execution
+- [ ] Test: URL fetch tool execution
+- [ ] Test: PDF parse tool execution
+- [ ] Test: Sources.md updated with URLs and PDFs
 - [ ] Test: Synthesis generation
 - [ ] Test: Git commits at each phase
 - [ ] Test: Error handling - Ollama not running
 - [ ] Test: Error handling - Invalid model
 - [ ] Test: Error handling - Bash script failures
+- [ ] Test: Error handling - Web search failure
+- [ ] Test: Error handling - URL fetch failure (404, timeout)
+- [ ] Test: Error handling - PDF parse failure (malformed PDF)
 - [ ] Test: OLLAMA_URL environment variable
 - [ ] Test: EDITOR environment variable
 
@@ -462,6 +567,11 @@ src/ollama_agent/
 ├── ollama_client.py                     [ ]
 ├── conversation.py                      [ ]
 ├── workflow.py                          [ ]
+├── tools/
+│   ├── __init__.py                      [ ]
+│   ├── web_search.py                    [ ]
+│   ├── url_fetch.py                     [ ]
+│   └── pdf_parser.py                    [ ]
 └── prompts/
     ├── __init__.py                      [ ]
     ├── constitution.py                  [ ]
@@ -473,6 +583,7 @@ tests/
 ├── test_environment.py                  [ ]
 ├── test_config.py                       [ ]
 ├── test_ollama_client.py                [ ]
+├── test_tools.py                        [ ]
 ├── test_conversation.py                 [ ]
 ├── test_workflow.py                     [ ]
 └── integration/
@@ -501,7 +612,11 @@ CHANGELOG.md                             [ ]
 - [ ] All git commits created correctly
 - [ ] Approval loops work as expected
 - [ ] Error messages are helpful
-- [ ] Works without internet connection (fully local)
+- [ ] Tool calling works correctly (web_search, fetch_url, parse_pdf)
+- [ ] Only tool-compatible models shown in selection
+- [ ] Web research functional during execution phase
+- [ ] Sources.md updated with URLs and PDFs automatically
+- [ ] Agent can search, fetch URLs, and parse PDFs
 
 ---
 
@@ -512,10 +627,24 @@ CHANGELOG.md                             [ ]
 **In Progress**: 0
 **Blocked**: 0
 
-**Estimated Effort**: 6 days
+**Estimated Effort**: 9 days
 **Actual Effort**: TBD
 
 ---
 
 **Last Updated**: 2025-11-09
-**Status**: Planning Phase
+**Status**: Planning Phase - Version 2.0
+
+## Changelog
+
+### Version 2.0 (2025-11-09)
+- Added Research Tools section (web_search, fetch_url, parse_pdf)
+- Updated OllamaClient with tool calling support
+- Updated ConversationEngine with tool execution
+- Added tool-related tests
+- Updated manual testing checklist
+- Updated success metrics
+- Increased estimated effort from 6 to 9 days
+
+### Version 1.0 (2025-11-09)
+- Initial deliverables checklist
