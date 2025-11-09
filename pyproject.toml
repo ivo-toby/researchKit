@@ -14,17 +14,24 @@ dependencies = [
     "httpx[socks]>=0.27.0",
     "platformdirs>=4.0.0",
     "readchar>=4.0.0",
+    # Ollama agent dependencies
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+    "pypdf>=3.17.0",
+    "duckduckgo-search>=4.0.0",
 ]
 
 [project.scripts]
 research = "research_cli:main"
+research-ollama = "ollama_agent.cli:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/research_cli"]
+packages = ["src/research_cli", "src/ollama_agent"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "templates" = "share/research-cli/templates"
