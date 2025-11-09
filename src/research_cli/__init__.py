@@ -39,6 +39,13 @@ AGENT_CONFIG = {
         "cli_check": None,
         "requires_cli": False,
         "install_url": None,
+    },
+    "gemini": {
+        "name": "Gemini CLI",
+        "commands_dir": ".gemini",
+        "cli_check": "gemini",
+        "requires_cli": True,
+        "install_url": "https://github.com/google-gemini/gemini-cli",
     }
 }
 
@@ -76,6 +83,20 @@ def show_banner():
     ╚═══════════════════════════════════════╝
     """
     console.print(banner, style="bold cyan")
+
+
+def check_cli_tool(tool_name: str) -> bool:
+    """Check if a CLI tool is available"""
+    try:
+        subprocess.run(
+            [tool_name, "--version"],
+            capture_output=True,
+            check=True,
+            timeout=2
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        return False
 
 
 def get_template_dir() -> Path:
@@ -313,6 +334,64 @@ bash .researchkit/scripts/bash/synthesize.sh
 """)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
+    # For Gemini CLI, create configuration and instructions
+    elif ai_agent == "gemini":
+        readme_path = commands_dir / "README.md"
+        readme_path.write_text("""# ResearchKit with Gemini CLI
+
+This directory contains ResearchKit configuration for Gemini CLI.
+
+## Installation
+
+Install Gemini CLI from: https://github.com/google-gemini/gemini-cli
+
+## ResearchKit Integration
+
+When working on research projects:
+1. Use the `.researchkit/` directory structure
+2. Follow the research workflow: Plan → Execute → Synthesize
+3. Maintain proper citations in `sources.md`
+4. Document findings in `findings.md`
+5. Create synthesis reports in `synthesis.md`
+
+## Research Commands
+
+Run these bash scripts to manage your research:
+
+```bash
+# Create a new research plan
+bash .researchkit/scripts/bash/plan.sh "Research Topic"
+
+# Set up execution
+bash .researchkit/scripts/bash/execute.sh
+
+# Generate synthesis
+bash .researchkit/scripts/bash/synthesize.sh
+```
+
+## Using Gemini CLI for Research
+
+Gemini CLI can help with:
+- Literature review and summarization
+- Citation formatting and verification
+- Research question refinement
+- Data analysis and interpretation
+- Source quality assessment
+
+Example commands:
+```bash
+# Ask Gemini to help refine your research question
+gemini chat "Help me refine this research question: [your question]"
+
+# Get help with citation formatting
+gemini chat "Format this source as APA citation: [source details]"
+
+# Summarize research findings
+gemini chat "Summarize these key points: [your findings]"
+```
+""")
+        tracker.add_step(f"Created {agent_config['name']} configuration")
+
     # For other agents, create basic directory structure
     else:
         tracker.add_step(f"Created {agent_config['name']} directory structure")
@@ -321,7 +400,7 @@ bash .researchkit/scripts/bash/synthesize.sh
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Project name or '.' for current directory"),
-    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot)"),
+    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot, gemini)"),
 ):
     """
     Initialize a new ResearchKit project with structured research workflow support.
@@ -348,7 +427,20 @@ def init(
         console.print(f"Supported agents: {', '.join(AGENT_CONFIG.keys())}")
         raise typer.Exit(1)
 
-    tracker.add_step(f"Selected AI agent: {AGENT_CONFIG[ai]['name']}")
+    agent_config = AGENT_CONFIG[ai]
+    tracker.add_step(f"Selected AI agent: {agent_config['name']}")
+
+    # Check if CLI tool is required and available
+    if agent_config.get("requires_cli") and agent_config.get("cli_check"):
+        cli_tool = agent_config["cli_check"]
+        if not check_cli_tool(cli_tool):
+            console.print(f"\n[yellow]⚠[/yellow]  {agent_config['name']} CLI tool not found")
+            console.print(f"[yellow]   The '{cli_tool}' command is not available[/yellow]")
+            if agent_config.get("install_url"):
+                console.print(f"[yellow]   Install from: {agent_config['install_url']}[/yellow]")
+            console.print(f"\n[red]✗ {agent_config['name']} requires the CLI tool to be installed[/red]\n")
+            raise typer.Exit(1)
+        tracker.add_step(f"Verified {cli_tool} CLI tool is installed")
 
     # Initialize git
     init_git_repo(project_dir, tracker)
@@ -392,17 +484,18 @@ def check():
     except (subprocess.CalledProcessError, FileNotFoundError):
         checks.add("[red]✗[/red] Git: Not found")
 
-    # Check Claude CLI
-    try:
-        subprocess.run(
-            ["claude", "--version"],
-            capture_output=True,
-            check=True,
-            timeout=2
-        )
-        checks.add("[green]✓[/green] Claude CLI: Installed")
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        checks.add("[yellow]○[/yellow] Claude CLI: Not found (optional)")
+    # Check all AI agent CLI tools
+    for agent_name, agent_config in AGENT_CONFIG.items():
+        cli_tool = agent_config.get("cli_check")
+        if cli_tool:
+            is_required = agent_config.get("requires_cli", False)
+            if check_cli_tool(cli_tool):
+                checks.add(f"[green]✓[/green] {agent_config['name']}: Installed")
+            else:
+                status = "required" if is_required else "optional"
+                color = "red" if is_required else "yellow"
+                symbol = "✗" if is_required else "○"
+                checks.add(f"[{color}]{symbol}[/{color}] {agent_config['name']}: Not found ({status})")
 
     console.print(checks)
 
