@@ -710,9 +710,36 @@ def init(
     console.print("\n✨ [bold green]ResearchKit project initialized successfully![/bold green]\n")
     console.print("Next steps:")
     console.print("  1. [cyan]cd {}[/cyan]".format(project_dir if project_name and project_name != "." else "."))
-    console.print("  2. [cyan]claude[/cyan]  # Start Claude Code")
-    console.print("  3. Use [cyan]/researchkit.constitution[/cyan] to define research principles")
-    console.print("  4. Use [cyan]/researchkit.plan[/cyan] to start a research project\n")
+
+    # Dynamic step 2 based on AI agent
+    if ai == "claude":
+        console.print("  2. [cyan]claude[/cyan]  # Start Claude Code")
+        console.print("  3. Use [cyan]/researchkit.constitution[/cyan] to define research principles")
+        console.print("  4. Use [cyan]/researchkit.plan[/cyan] to start a research project\n")
+    elif ai == "opencode":
+        console.print("  2. [cyan]opencode[/cyan]  # Start OpenCode")
+        console.print("  3. Review [cyan].researchkit/memory/constitution.md[/cyan] to define research principles")
+        console.print("  4. Run [cyan]bash .researchkit/scripts/bash/plan.sh \"Your Topic\"[/cyan] to start a research project\n")
+    elif ai == "gemini":
+        console.print("  2. [cyan]gemini chat[/cyan]  # Start Gemini CLI")
+        console.print("  3. Review [cyan].researchkit/memory/constitution.md[/cyan] to define research principles")
+        console.print("  4. Run [cyan]bash .researchkit/scripts/bash/plan.sh \"Your Topic\"[/cyan] to start a research project\n")
+    elif ai == "codex":
+        console.print("  2. Set CODEX_HOME environment variable (see [cyan]{}/README.md[/cyan])".format(agent_config["commands_dir"]))
+        console.print("  3. [cyan]codex[/cyan]  # Start Codex CLI")
+        console.print("  4. Review [cyan].researchkit/memory/constitution.md[/cyan] to define research principles")
+        console.print("  5. Run [cyan]bash .researchkit/scripts/bash/plan.sh \"Your Topic\"[/cyan] to start a research project\n")
+    elif ai == "copilot":
+        console.print("  2. Open this project in your IDE (VS Code, JetBrains, etc.)")
+        console.print("  3. Review [cyan].researchkit/memory/constitution.md[/cyan] to define research principles")
+        console.print("  4. Run [cyan]bash .researchkit/scripts/bash/plan.sh \"Your Topic\"[/cyan] to start a research project\n")
+    elif ai == "cursor":
+        console.print("  2. [cyan]cursor .[/cyan]  # Open project in Cursor")
+        console.print("  3. Review [cyan].researchkit/memory/constitution.md[/cyan] to define research principles")
+        console.print("  4. Run [cyan]bash .researchkit/scripts/bash/plan.sh \"Your Topic\"[/cyan] to start a research project\n")
+    else:
+        console.print("  2. Review [cyan].researchkit/memory/constitution.md[/cyan] to define research principles")
+        console.print("  3. Run [cyan]bash .researchkit/scripts/bash/plan.sh \"Your Topic\"[/cyan] to start a research project\n")
 
 
 @app.command()
