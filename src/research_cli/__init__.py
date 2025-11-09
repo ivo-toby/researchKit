@@ -550,7 +550,7 @@ When helping with research:
     # For Codex CLI, create configuration with environment setup
     elif ai_agent == "codex":
         readme_path = commands_dir / "README.md"
-        codex_home_path = str(project_dir / agent_config["commands_dir"])
+        codex_home_path = (project_dir / agent_config["commands_dir"]).as_posix()
         readme_content = f"""# ResearchKit with Codex CLI
 
 This directory contains ResearchKit configuration for OpenAI Codex CLI.
