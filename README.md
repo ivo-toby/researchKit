@@ -10,7 +10,7 @@ ResearchKit is a CLI tool for conducting rigorous, well-documented research with
 
 - 📋 **Structured Research Workflow**: Plan → Execute → Synthesize
 - 📚 **Citation Management**: Built-in bibliography tracking with quality ratings
-- 🤖 **AI Integration**: Claude Code slash commands for guided research
+- 🤖 **Multi-AI Support**: Works with Claude Code, GitHub Copilot, Gemini CLI, Cursor, OpenCode, and Codex CLI
 - 🎯 **Research Constitution**: Define methodology principles and standards
 - 📊 **Progress Tracking**: Git-based project organization with auto-incrementing IDs
 - ✅ **Quality Assurance**: Checklists and verification requirements
@@ -23,7 +23,13 @@ ResearchKit is a CLI tool for conducting rigorous, well-documented research with
 
 - Python 3.11 or higher
 - Git
-- [Claude Code](https://docs.claude.com/claude-code) (optional, for AI assistance)
+- **AI Editor/Tool** (optional, choose one or more):
+  - [Claude Code](https://docs.claude.com/claude-code) - Full slash command support
+  - [GitHub Copilot](https://github.com/features/copilot) - IDE integration
+  - [Gemini CLI](https://github.com/google-gemini/gemini-cli) - Command-line interface
+  - [Cursor](https://cursor.sh) - AI-powered editor
+  - [OpenCode](https://opencode.ai) - AI research assistant
+  - [Codex CLI](https://github.com/openai/codex) - Code generation for research
 - [uv](https://github.com/astral-sh/uv) (recommended)
 
 ### Install with uv
@@ -57,12 +63,15 @@ pip install -e .
 ### 1. Initialize a Research Project
 
 ```bash
-# Create a new project
+# Create a new project with your preferred AI tool
 research init my-research-project --ai claude
 cd my-research-project
 
 # Or use current directory
 research init . --ai claude
+
+# Available AI options:
+# --ai claude, copilot, gemini, cursor, opencode, codex
 ```
 
 This creates:
@@ -76,10 +85,16 @@ This creates:
 └── templates/                   # Document templates
 ```
 
-### 2. Start Claude Code
+### 2. Start Your AI Tool
 
 ```bash
+# For Claude Code
 claude
+
+# For Cursor
+cursor .
+
+# For other tools, see the "Supported AI Editors and Tools" section below
 ```
 
 ### 3. Define Research Constitution (Optional but Recommended)
@@ -146,6 +161,148 @@ This creates `synthesis.md` where you'll write:
 - Evidence-based conclusions
 - Recommendations
 - Complete bibliography
+
+---
+
+## Supported AI Editors and Tools
+
+ResearchKit supports multiple AI editors and CLI tools. Choose the one that best fits your workflow:
+
+### Claude Code (Recommended)
+
+Full integration with slash commands for guided research workflows.
+
+```bash
+research init my-project --ai claude
+cd my-project
+claude
+```
+
+**Features:**
+- Interactive slash commands (`/researchkit.plan`, `/researchkit.execute`, etc.)
+- Guided research workflow
+- Built-in citation and source management
+- Constitution-based research standards
+
+**Use when:** You want comprehensive guided research with interactive AI assistance.
+
+---
+
+### GitHub Copilot
+
+IDE-based AI assistant working in VS Code, JetBrains, and other editors.
+
+```bash
+research init my-project --ai copilot
+```
+
+**Features:**
+- In-editor AI suggestions
+- Code and document completion
+- Citation formatting assistance
+- Works in your existing IDE
+
+**Use when:** You prefer working in your IDE with inline AI suggestions.
+
+---
+
+### Gemini CLI
+
+Google's AI assistant via command-line interface.
+
+```bash
+# Requires Gemini CLI installation
+research init my-project --ai gemini
+```
+
+**Features:**
+- Command-line AI interactions
+- Literature review and summarization
+- Citation formatting
+- Research question refinement
+
+**Installation:** https://github.com/google-gemini/gemini-cli
+
+**Use when:** You prefer command-line workflows and Google's AI models.
+
+---
+
+### Cursor
+
+AI-powered code editor built on VS Code with integrated AI assistance.
+
+```bash
+research init my-project --ai cursor
+```
+
+**Features:**
+- AI-powered editor with chat interface
+- Automatic `.cursorrules` configuration
+- Research workflow awareness
+- Citation and document structuring
+
+**Installation:** https://cursor.sh
+
+**Use when:** You want an AI-native editor experience for research.
+
+---
+
+### OpenCode
+
+AI research assistant with specialized prompts for academic work.
+
+```bash
+# Requires OpenCode CLI installation
+research init my-project --ai opencode
+```
+
+**Features:**
+- Research-specific AI prompts
+- Citation management and formatting
+- Literature review synthesis
+- Custom research assistant configuration
+
+**Installation:** https://opencode.ai
+
+**Use when:** You need specialized AI assistance for academic research.
+
+---
+
+### Codex CLI
+
+OpenAI's code generation tool for research automation and data analysis.
+
+```bash
+# Requires Codex CLI installation
+research init my-project --ai codex
+```
+
+**Features:**
+- Code generation for data analysis
+- Research automation scripts
+- Statistical analysis and visualization
+- Requires `CODEX_HOME` environment variable setup
+
+**Installation:** https://github.com/openai/codex
+
+**Environment Setup:**
+```bash
+export CODEX_HOME="/path/to/your/project/.codex"
+```
+
+**Use when:** You need code generation for data analysis and research automation.
+
+---
+
+### Checking Available Tools
+
+Verify which AI tools are installed:
+
+```bash
+research check
+```
+
+This displays the status of Git and all supported AI CLI tools.
 
 ---
 
@@ -344,11 +501,19 @@ git merge research/001-topic-name
 ## CLI Commands
 
 ```bash
-# Initialize a new project
-research init <project-name>
+# Initialize a new project with AI support
+research init <project-name> --ai <agent>
 research init . --ai claude
 
-# Check installation
+# Supported AI agents:
+# --ai claude    (Claude Code - recommended)
+# --ai copilot   (GitHub Copilot)
+# --ai gemini    (Gemini CLI)
+# --ai cursor    (Cursor editor)
+# --ai opencode  (OpenCode)
+# --ai codex     (Codex CLI)
+
+# Check installation and AI tool status
 research check
 
 # Show version
@@ -362,10 +527,12 @@ research --help
 
 ## Examples
 
-### Academic Research
+### Academic Research (Claude Code)
 
 ```bash
 research init literature-review --ai claude
+cd literature-review
+claude
 ```
 
 Constitution emphasizes:
@@ -374,10 +541,14 @@ Constitution emphasizes:
 - Cross-verification with 3+ sources
 - Methodology documentation
 
-### Technical Research
+Use Claude's slash commands for guided research workflow.
+
+### Technical Documentation (GitHub Copilot)
 
 ```bash
-research init framework-comparison --ai claude
+research init framework-comparison --ai copilot
+cd framework-comparison
+code .  # Open in VS Code
 ```
 
 Constitution emphasizes:
@@ -386,10 +557,45 @@ Constitution emphasizes:
 - Reproducible examples
 - Link verification
 
-### Market Research
+Use Copilot for inline documentation and code example suggestions.
+
+### Data Analysis Research (Codex CLI)
 
 ```bash
-research init industry-analysis --ai claude
+research init data-analysis --ai codex
+cd data-analysis
+export CODEX_HOME="$(pwd)/.codex"
+```
+
+Constitution emphasizes:
+- Reproducible analysis scripts
+- Statistical rigor
+- Data visualization standards
+- Code documentation
+
+Use Codex to generate analysis scripts and visualization code.
+
+### AI/ML Research (Gemini CLI)
+
+```bash
+research init ml-benchmarks --ai gemini
+cd ml-benchmarks
+```
+
+Constitution emphasizes:
+- Recent research papers
+- Benchmark comparisons
+- Model architecture details
+- Performance metrics
+
+Use Gemini CLI for literature review and summarization.
+
+### Market Research (Cursor)
+
+```bash
+research init industry-analysis --ai cursor
+cd industry-analysis
+cursor .
 ```
 
 Constitution emphasizes:
@@ -397,6 +603,8 @@ Constitution emphasizes:
 - Data source verification
 - Bias acknowledgment
 - Recency requirements
+
+Use Cursor's AI chat to help structure findings and analysis.
 
 ---
 
@@ -434,11 +642,12 @@ ls .claude/commands/researchkit_*
 We welcome contributions! Areas for improvement:
 
 - [ ] PowerShell script implementation
-- [ ] Additional AI agent support (Gemini, etc.)
+- [x] Multiple AI agent support (Claude, Copilot, Gemini, Cursor, OpenCode, Codex)
 - [ ] Export formats (PDF, LaTeX, etc.)
 - [ ] Citation format validation
 - [ ] Source quality auto-detection
 - [ ] Research analytics dashboard
+- [ ] MCP (Model Context Protocol) server integration
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
@@ -480,18 +689,21 @@ ResearchKit is inspired by [SpecKit](https://github.com/github/spec-kit) from Gi
 
 ### Version 0.2.0
 - [ ] PowerShell script implementation
-- [ ] Multiple AI agent support
+- [x] Multiple AI agent support (Claude, Copilot, Gemini, Cursor, OpenCode, Codex)
 - [ ] Enhanced citation format validation
+- [ ] MCP server integration
 
 ### Version 0.3.0
 - [ ] Export to PDF/LaTeX
 - [ ] Research analytics
 - [ ] Collaborative research features
+- [ ] AI-powered source quality assessment
 
 ### Version 1.0.0
 - [ ] Full documentation site
 - [ ] Plugin system
 - [ ] Template marketplace
+- [ ] Multi-language support
 
 ---
 

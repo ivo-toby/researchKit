@@ -24,12 +24,49 @@ app = typer.Typer(
     invoke_without_command=True,
 )
 
-# AI Agent configurations (currently supporting Claude)
+# AI Agent configurations
 AGENT_CONFIG = {
     "claude": {
         "name": "Claude Code",
         "commands_dir": ".claude/commands",
         "cli_check": "claude",
+        "requires_cli": False,
+        "install_url": None,
+    },
+    "copilot": {
+        "name": "GitHub Copilot",
+        "commands_dir": ".github/copilot",
+        "cli_check": None,
+        "requires_cli": False,
+        "install_url": None,
+    },
+    "gemini": {
+        "name": "Gemini CLI",
+        "commands_dir": ".gemini",
+        "cli_check": "gemini",
+        "requires_cli": True,
+        "install_url": "https://github.com/google-gemini/gemini-cli",
+    },
+    "cursor": {
+        "name": "Cursor",
+        "commands_dir": ".cursor",
+        "cli_check": None,
+        "requires_cli": False,
+        "install_url": None,
+    },
+    "opencode": {
+        "name": "OpenCode",
+        "commands_dir": ".opencode",
+        "cli_check": "opencode",
+        "requires_cli": True,
+        "install_url": "https://opencode.ai",
+    },
+    "codex": {
+        "name": "Codex CLI",
+        "commands_dir": ".codex",
+        "cli_check": "codex",
+        "requires_cli": True,
+        "install_url": "https://github.com/openai/codex",
     }
 }
 
@@ -67,6 +104,48 @@ def show_banner():
     ╚═══════════════════════════════════════╝
     """
     console.print(banner, style="bold cyan")
+
+
+def check_cli_tool(tool_name: str) -> bool:
+    """Check if a CLI tool is available"""
+    try:
+        subprocess.run(
+            [tool_name, "--version"],
+            capture_output=True,
+            check=True,
+            timeout=2
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+        return False
+
+
+def get_common_researchkit_sections() -> str:
+    """Get common ResearchKit integration sections for README files"""
+    return """## ResearchKit Integration
+
+When working on research projects:
+1. Use the `.researchkit/` directory structure
+2. Follow the research workflow: Plan → Execute → Synthesize
+3. Maintain proper citations in `sources.md`
+4. Document findings in `findings.md`
+5. Create synthesis reports in `synthesis.md`
+
+## Research Commands
+
+Run these bash scripts to manage your research:
+
+```bash
+# Create a new research plan
+bash .researchkit/scripts/bash/plan.sh "Research Topic"
+
+# Set up execution
+bash .researchkit/scripts/bash/execute.sh
+
+# Generate synthesis
+bash .researchkit/scripts/bash/synthesize.sh
+```
+"""
 
 
 def get_template_dir() -> Path:
@@ -238,31 +317,343 @@ def create_researchkit_structure(project_dir: Path, tracker: StepTracker):
         tracker.add_step("Created research constitution")
 
 
-def create_claude_commands(project_dir: Path, ai_agent: str, tracker: StepTracker):
-    """Create Claude Code command files"""
-    if ai_agent != "claude":
+def create_agent_commands(project_dir: Path, ai_agent: str, tracker: StepTracker):
+    """Create AI agent-specific command files and directories"""
+    if ai_agent not in AGENT_CONFIG:
         return
 
-    commands_dir = project_dir / ".claude" / "commands"
+    agent_config = AGENT_CONFIG[ai_agent]
+    commands_dir = project_dir / agent_config["commands_dir"]
     commands_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy command files from templates
-    template_dir = get_template_dir()
-    commands_template_dir = template_dir.parent / "claude_commands"
+    # For Claude, copy command files from templates
+    if ai_agent == "claude":
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
 
-    if commands_template_dir.exists():
-        for command_file in commands_template_dir.glob("*.md"):
-            dst = commands_dir / command_file.name
-            shutil.copy2(command_file, dst)
-        tracker.add_step("Created Claude Code slash commands")
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                dst = commands_dir / command_file.name
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created Claude Code slash commands")
+        else:
+            tracker.add_error("Claude command templates not found")
+
+    # For GitHub Copilot, create a README with instructions
+    elif ai_agent == "copilot":
+        readme_path = commands_dir / "README.md"
+        readme_content = f"""# ResearchKit with GitHub Copilot
+
+This directory contains ResearchKit configuration for GitHub Copilot.
+
+## Usage
+
+GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-powered code suggestions.
+
+{get_common_researchkit_sections()}
+
+## Copilot Tips for Research
+
+- Ask Copilot to help format citations
+- Use Copilot to generate search query suggestions
+- Have Copilot help structure your findings
+- Let Copilot assist with summarizing sources
+"""
+        readme_path.write_text(readme_content)
+        tracker.add_step(f"Created {agent_config['name']} configuration")
+
+    # For Gemini CLI, create configuration and instructions
+    elif ai_agent == "gemini":
+        readme_path = commands_dir / "README.md"
+        readme_content = f"""# ResearchKit with Gemini CLI
+
+This directory contains ResearchKit configuration for Gemini CLI.
+
+## Installation
+
+Install Gemini CLI from: https://github.com/google-gemini/gemini-cli
+
+{get_common_researchkit_sections()}
+
+## Using Gemini CLI for Research
+
+Gemini CLI can help with:
+- Literature review and summarization
+- Citation formatting and verification
+- Research question refinement
+- Data analysis and interpretation
+- Source quality assessment
+
+Example commands:
+```bash
+# Ask Gemini to help refine your research question
+gemini chat "Help me refine this research question: [your question]"
+
+# Get help with citation formatting
+gemini chat "Format this source as APA citation: [source details]"
+
+# Summarize research findings
+gemini chat "Summarize these key points: [your findings]"
+```
+"""
+        readme_path.write_text(readme_content)
+        tracker.add_step(f"Created {agent_config['name']} configuration")
+
+    # For Cursor, create configuration with AI rules
+    elif ai_agent == "cursor":
+        readme_path = commands_dir / "README.md"
+        readme_content = f"""# ResearchKit with Cursor
+
+This directory contains ResearchKit configuration for Cursor AI editor.
+
+## About Cursor
+
+Cursor is an AI-powered code editor built on VS Code with integrated AI assistance.
+
+{get_common_researchkit_sections()}
+
+## Using Cursor for Research
+
+Cursor's AI can help with:
+- Structuring research documents
+- Formatting citations consistently
+- Summarizing research findings
+- Generating literature review outlines
+- Analyzing research data
+
+### Tips
+
+- Use Cursor's chat to ask about citation formats
+- Highlight text and ask Cursor to refine or summarize
+- Use Cursor to help maintain consistent document structure
+- Ask Cursor to help verify citation completeness
+"""
+        readme_path.write_text(readme_content)
+        # Create .cursorrules file for AI context
+        cursorrules_path = commands_dir / ".cursorrules"
+        cursorrules_path.write_text("""# ResearchKit Cursor AI Rules
+
+## Project Context
+This is a ResearchKit research project following structured research workflows.
+
+## Research Workflow
+1. **Plan**: Define research questions, objectives, and methodology
+2. **Execute**: Gather sources, document findings, maintain citations
+3. **Synthesize**: Analyze findings and create comprehensive reports
+
+## Key Principles
+- All claims must be properly cited
+- Maintain source quality ratings (1-5 stars)
+- Follow the research constitution in `.researchkit/memory/constitution.md`
+- Keep findings organized chronologically
+- Cross-reference important claims
+
+## File Structure
+- `plan.md`: Research question, objectives, and strategy
+- `sources.md`: Bibliography with quality ratings
+- `findings.md`: Research notes and discoveries
+- `synthesis.md`: Final analysis and conclusions
+
+## Citation Standards
+- Use consistent citation format throughout
+- Include source URLs and access dates
+- Rate source quality and note any bias
+- Maintain complete bibliography
+
+## When Editing Research Files
+- Preserve existing citation formats
+- Maintain chronological order in findings
+- Keep source quality ratings consistent
+- Follow the established document structure
+""")
+        tracker.add_step(f"Created {agent_config['name']} configuration with .cursorrules")
+
+    # For OpenCode, create configuration and prompts
+    elif ai_agent == "opencode":
+        readme_path = commands_dir / "README.md"
+        readme_content = f"""# ResearchKit with OpenCode
+
+This directory contains ResearchKit configuration for OpenCode AI.
+
+## Installation
+
+Install OpenCode from: https://opencode.ai
+
+{get_common_researchkit_sections()}
+
+## Using OpenCode for Research
+
+OpenCode can assist with:
+- Research document generation
+- Citation management and formatting
+- Literature review synthesis
+- Data analysis and visualization
+- Research methodology design
+
+### Example Workflows
+
+**Planning Research:**
+```bash
+opencode "Help me create a research plan for studying [topic]"
+```
+
+**Managing Citations:**
+```bash
+opencode "Format these sources as APA citations: [source list]"
+```
+
+**Synthesizing Findings:**
+```bash
+opencode "Summarize these research findings into key themes: [findings]"
+```
+
+### Tips
+
+- Use OpenCode to help structure your research documents
+- Ask for help with citation formatting
+- Request summaries of complex sources
+- Get assistance with research methodology
+- Use OpenCode to identify gaps in your research
+"""
+        readme_path.write_text(readme_content)
+        # Create prompts directory with research-specific prompts
+        prompts_dir = commands_dir / "prompts"
+        prompts_dir.mkdir(exist_ok=True)
+
+        research_prompt = prompts_dir / "research_assistant.txt"
+        research_prompt.write_text("""You are a research assistant helping with structured research using ResearchKit.
+
+Your role is to help maintain research quality by:
+1. Ensuring all claims are properly cited
+2. Helping format citations consistently
+3. Identifying gaps in research coverage
+4. Suggesting relevant sources
+5. Maintaining research organization
+
+Always follow the research constitution in .researchkit/memory/constitution.md
+
+Key files:
+- plan.md: Research questions and methodology
+- sources.md: Bibliography with quality ratings
+- findings.md: Research notes and discoveries
+- synthesis.md: Final analysis and conclusions
+
+When helping with research:
+- Ask for citations when claims are made
+- Suggest source quality ratings (1-5 stars)
+- Maintain chronological organization
+- Cross-reference important findings
+- Follow established citation format
+""")
+        tracker.add_step(f"Created {agent_config['name']} configuration with prompts")
+
+    # For Codex CLI, create configuration with environment setup
+    elif ai_agent == "codex":
+        readme_path = commands_dir / "README.md"
+        codex_home_path = (project_dir / agent_config["commands_dir"]).as_posix()
+        readme_content = f"""# ResearchKit with Codex CLI
+
+This directory contains ResearchKit configuration for OpenAI Codex CLI.
+
+## Installation
+
+Install Codex CLI from: https://github.com/openai/codex
+
+## Environment Setup
+
+**IMPORTANT:** Set the CODEX_HOME environment variable to use this configuration:
+
+### Bash/Zsh
+Add to your `~/.bashrc` or `~/.zshrc`:
+```bash
+export CODEX_HOME="{codex_home_path}"
+```
+
+### Fish
+Add to your `~/.config/fish/config.fish`:
+```fish
+set -x CODEX_HOME "{codex_home_path}"
+```
+
+### PowerShell
+Add to your PowerShell profile:
+```powershell
+$env:CODEX_HOME = "{codex_home_path}"
+```
+
+Then restart your shell or run `source ~/.bashrc` (or equivalent).
+
+{get_common_researchkit_sections()}
+
+## Using Codex CLI for Research
+
+Codex can help with:
+- Code generation for data analysis
+- Research automation scripts
+- Data processing and transformation
+- Statistical analysis code
+- Visualization generation
+
+### Example Commands
+
+**Generate Analysis Code:**
+```bash
+codex "Write a Python script to analyze [data type]"
+```
+
+**Data Processing:**
+```bash
+codex "Create a script to clean and process this CSV data"
+```
+
+**Visualization:**
+```bash
+codex "Generate matplotlib code to visualize [data description]"
+```
+
+### Tips
+
+- Use Codex for research-related code generation
+- Ask Codex to help with data analysis scripts
+- Generate test code for research automation
+- Create data pipeline scripts
+- Build research tools and utilities
+"""
+        readme_path.write_text(readme_content)
+        # Create config file
+        config_path = commands_dir / "config.json"
+        config_path.write_text("""{
+  "research_mode": true,
+  "context": "ResearchKit structured research project",
+  "files": {
+    "plan": ".researchkit/research/*/plan.md",
+    "findings": ".researchkit/research/*/findings.md",
+    "sources": ".researchkit/research/*/sources.md",
+    "synthesis": ".researchkit/research/*/synthesis.md"
+  },
+  "guidelines": [
+    "Follow research constitution",
+    "Maintain citation standards",
+    "Ensure code is well-documented",
+    "Generate reproducible analysis"
+  ]
+}
+""")
+        tracker.add_step(f"Created {agent_config['name']} configuration")
+
+        # Display environment setup message
+        console.print(f"\n[yellow]⚠  Important:[/yellow] Set CODEX_HOME environment variable:")
+        console.print(f"[cyan]   export CODEX_HOME=\"{codex_home_path}\"[/cyan]\n")
+
+    # For other agents, create basic directory structure
     else:
-        tracker.add_error("Claude command templates not found")
+        tracker.add_step(f"Created {agent_config['name']} directory structure")
 
 
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Project name or '.' for current directory"),
-    ai: str = typer.Option("claude", help="AI agent to use (currently supports: claude)"),
+    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot, gemini, cursor, opencode, codex)"),
 ):
     """
     Initialize a new ResearchKit project with structured research workflow support.
@@ -289,7 +680,20 @@ def init(
         console.print(f"Supported agents: {', '.join(AGENT_CONFIG.keys())}")
         raise typer.Exit(1)
 
-    tracker.add_step(f"Selected AI agent: {AGENT_CONFIG[ai]['name']}")
+    agent_config = AGENT_CONFIG[ai]
+    tracker.add_step(f"Selected AI agent: {agent_config['name']}")
+
+    # Check if CLI tool is required and available
+    if agent_config.get("requires_cli") and agent_config.get("cli_check"):
+        cli_tool = agent_config["cli_check"]
+        if not check_cli_tool(cli_tool):
+            console.print(f"\n[yellow]⚠[/yellow]  {agent_config['name']} CLI tool not found")
+            console.print(f"[yellow]   The '{cli_tool}' command is not available[/yellow]")
+            if agent_config.get("install_url"):
+                console.print(f"[yellow]   Install from: {agent_config['install_url']}[/yellow]")
+            console.print(f"\n[red]✗ {agent_config['name']} requires the CLI tool to be installed[/red]\n")
+            raise typer.Exit(1)
+        tracker.add_step(f"Verified {cli_tool} CLI tool is installed")
 
     # Initialize git
     init_git_repo(project_dir, tracker)
@@ -298,7 +702,7 @@ def init(
     create_researchkit_structure(project_dir, tracker)
 
     # Create AI-specific commands
-    create_claude_commands(project_dir, ai, tracker)
+    create_agent_commands(project_dir, ai, tracker)
 
     # Display results
     tracker.display()
@@ -333,17 +737,18 @@ def check():
     except (subprocess.CalledProcessError, FileNotFoundError):
         checks.add("[red]✗[/red] Git: Not found")
 
-    # Check Claude CLI
-    try:
-        subprocess.run(
-            ["claude", "--version"],
-            capture_output=True,
-            check=True,
-            timeout=2
-        )
-        checks.add("[green]✓[/green] Claude CLI: Installed")
-    except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
-        checks.add("[yellow]○[/yellow] Claude CLI: Not found (optional)")
+    # Check all AI agent CLI tools
+    for agent_name, agent_config in AGENT_CONFIG.items():
+        cli_tool = agent_config.get("cli_check")
+        if cli_tool:
+            is_required = agent_config.get("requires_cli", False)
+            if check_cli_tool(cli_tool):
+                checks.add(f"[green]✓[/green] {agent_config['name']}: Installed")
+            else:
+                status = "required" if is_required else "optional"
+                color = "red" if is_required else "yellow"
+                symbol = "✗" if is_required else "○"
+                checks.add(f"[{color}]{symbol}[/{color}] {agent_config['name']}: Not found ({status})")
 
     console.print(checks)
 
