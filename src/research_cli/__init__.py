@@ -53,6 +53,13 @@ AGENT_CONFIG = {
         "cli_check": None,
         "requires_cli": False,
         "install_url": None,
+    },
+    "opencode": {
+        "name": "OpenCode",
+        "commands_dir": ".opencode",
+        "cli_check": "opencode",
+        "requires_cli": True,
+        "install_url": "https://opencode.ai",
     }
 }
 
@@ -489,6 +496,106 @@ This is a ResearchKit research project following structured research workflows.
 """)
         tracker.add_step(f"Created {agent_config['name']} configuration with .cursorrules")
 
+    # For OpenCode, create configuration and prompts
+    elif ai_agent == "opencode":
+        readme_path = commands_dir / "README.md"
+        readme_path.write_text("""# ResearchKit with OpenCode
+
+This directory contains ResearchKit configuration for OpenCode AI.
+
+## Installation
+
+Install OpenCode from: https://opencode.ai
+
+## ResearchKit Integration
+
+When working on research projects:
+1. Use the `.researchkit/` directory structure
+2. Follow the research workflow: Plan → Execute → Synthesize
+3. Maintain proper citations in `sources.md`
+4. Document findings in `findings.md`
+5. Create synthesis reports in `synthesis.md`
+
+## Research Commands
+
+Run these bash scripts to manage your research:
+
+```bash
+# Create a new research plan
+bash .researchkit/scripts/bash/plan.sh "Research Topic"
+
+# Set up execution
+bash .researchkit/scripts/bash/execute.sh
+
+# Generate synthesis
+bash .researchkit/scripts/bash/synthesize.sh
+```
+
+## Using OpenCode for Research
+
+OpenCode can assist with:
+- Research document generation
+- Citation management and formatting
+- Literature review synthesis
+- Data analysis and visualization
+- Research methodology design
+
+### Example Workflows
+
+**Planning Research:**
+```bash
+opencode "Help me create a research plan for studying [topic]"
+```
+
+**Managing Citations:**
+```bash
+opencode "Format these sources as APA citations: [source list]"
+```
+
+**Synthesizing Findings:**
+```bash
+opencode "Summarize these research findings into key themes: [findings]"
+```
+
+### Tips
+
+- Use OpenCode to help structure your research documents
+- Ask for help with citation formatting
+- Request summaries of complex sources
+- Get assistance with research methodology
+- Use OpenCode to identify gaps in your research
+""")
+        # Create prompts directory with research-specific prompts
+        prompts_dir = commands_dir / "prompts"
+        prompts_dir.mkdir(exist_ok=True)
+
+        research_prompt = prompts_dir / "research_assistant.txt"
+        research_prompt.write_text("""You are a research assistant helping with structured research using ResearchKit.
+
+Your role is to help maintain research quality by:
+1. Ensuring all claims are properly cited
+2. Helping format citations consistently
+3. Identifying gaps in research coverage
+4. Suggesting relevant sources
+5. Maintaining research organization
+
+Always follow the research constitution in .researchkit/memory/constitution.md
+
+Key files:
+- plan.md: Research questions and methodology
+- sources.md: Bibliography with quality ratings
+- findings.md: Research notes and discoveries
+- synthesis.md: Final analysis and conclusions
+
+When helping with research:
+- Ask for citations when claims are made
+- Suggest source quality ratings (1-5 stars)
+- Maintain chronological organization
+- Cross-reference important findings
+- Follow established citation format
+""")
+        tracker.add_step(f"Created {agent_config['name']} configuration with prompts")
+
     # For other agents, create basic directory structure
     else:
         tracker.add_step(f"Created {agent_config['name']} directory structure")
@@ -497,7 +604,7 @@ This is a ResearchKit research project following structured research workflows.
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Project name or '.' for current directory"),
-    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot, gemini, cursor)"),
+    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot, gemini, cursor, opencode)"),
 ):
     """
     Initialize a new ResearchKit project with structured research workflow support.
