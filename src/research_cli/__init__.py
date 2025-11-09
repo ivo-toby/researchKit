@@ -35,14 +35,14 @@ AGENT_CONFIG = {
     },
     "copilot": {
         "name": "GitHub Copilot",
-        "commands_dir": ".github/copilot",
+        "commands_dir": ".github/prompts",
         "cli_check": None,
         "requires_cli": False,
         "install_url": None,
     },
     "gemini": {
         "name": "Gemini CLI",
-        "commands_dir": ".gemini",
+        "commands_dir": ".gemini/commands",
         "cli_check": "gemini",
         "requires_cli": True,
         "install_url": "https://github.com/google-gemini/gemini-cli",
@@ -339,21 +339,54 @@ def create_agent_commands(project_dir: Path, ai_agent: str, tracker: StepTracker
         else:
             tracker.add_error("Claude command templates not found")
 
-    # For GitHub Copilot, create a README with instructions
+    # For GitHub Copilot, create custom prompt files
     elif ai_agent == "copilot":
+        # Copy command files as .prompt.md files from templates
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
+
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                # Convert researchkit_constitution.md to constitution.prompt.md
+                prompt_name = command_file.stem.replace("researchkit_", "")
+                dst = commands_dir / f"{prompt_name}.prompt.md"
+
+                # Copy the file content (already has frontmatter)
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created GitHub Copilot custom prompts")
+        else:
+            tracker.add_error("Command templates not found")
+
+        # Create README
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with GitHub Copilot
 
-This directory contains ResearchKit configuration for GitHub Copilot.
+This directory contains ResearchKit custom prompts for GitHub Copilot.
 
 ## Usage
 
-GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-powered code suggestions.
+GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-powered assistance.
+
+## Custom Prompts
+
+These custom prompts are available in Copilot Chat (reference with #prompt:):
+
+- `constitution.prompt.md` - Define research methodology and standards
+- `plan.prompt.md` - Create a structured research plan
+- `execute.prompt.md` - Execute research with proper documentation
+- `synthesize.prompt.md` - Generate comprehensive research report
+- `sources.prompt.md` - Manage bibliography and citations
+
+To use a custom prompt in Copilot Chat:
+1. Type `#prompt:` in the chat input
+2. Select the desired prompt from the list
+3. Or click the ➕ icon to add it as context
 
 {get_common_researchkit_sections()}
 
 ## Copilot Tips for Research
 
+- Use custom prompts above for guided research workflows
 - Ask Copilot to help format citations
 - Use Copilot to generate search query suggestions
 - Have Copilot help structure your findings
@@ -362,16 +395,39 @@ GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-po
         readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
-    # For Gemini CLI, create configuration and instructions
+    # For Gemini CLI, copy command files and create configuration
     elif ai_agent == "gemini":
+        # Copy slash command files from templates
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
+
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                dst = commands_dir / command_file.name
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created Gemini CLI slash commands")
+        else:
+            tracker.add_error("Command templates not found")
+
+        # Create README
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with Gemini CLI
 
-This directory contains ResearchKit configuration for Gemini CLI.
+This directory contains ResearchKit slash commands for Gemini CLI.
 
 ## Installation
 
 Install Gemini CLI from: https://github.com/google-gemini/gemini-cli
+
+## Slash Commands
+
+Use these commands in Gemini CLI:
+
+- `/researchkit.constitution` - Define research methodology and standards
+- `/researchkit.plan` - Create a structured research plan
+- `/researchkit.execute` - Execute research with proper documentation
+- `/researchkit.synthesize` - Generate comprehensive research report
+- `/researchkit.sources` - Manage bibliography and citations
 
 {get_common_researchkit_sections()}
 
@@ -384,17 +440,13 @@ Gemini CLI can help with:
 - Data analysis and interpretation
 - Source quality assessment
 
-Example commands:
-```bash
-# Ask Gemini to help refine your research question
-gemini chat "Help me refine this research question: [your question]"
+### Tips
 
-# Get help with citation formatting
-gemini chat "Format this source as APA citation: [source details]"
-
-# Summarize research findings
-gemini chat "Summarize these key points: [your findings]"
-```
+- Use the slash commands above for guided research workflows
+- Ask Gemini to help refine your research question
+- Get help with citation formatting
+- Request summaries of complex sources
+- Use Gemini for source quality assessment
 """
         readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
