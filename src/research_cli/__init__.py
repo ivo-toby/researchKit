@@ -46,6 +46,13 @@ AGENT_CONFIG = {
         "cli_check": "gemini",
         "requires_cli": True,
         "install_url": "https://github.com/google-gemini/gemini-cli",
+    },
+    "cursor": {
+        "name": "Cursor",
+        "commands_dir": ".cursor",
+        "cli_check": None,
+        "requires_cli": False,
+        "install_url": None,
     }
 }
 
@@ -392,6 +399,96 @@ gemini chat "Summarize these key points: [your findings]"
 """)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
+    # For Cursor, create configuration with AI rules
+    elif ai_agent == "cursor":
+        readme_path = commands_dir / "README.md"
+        readme_path.write_text("""# ResearchKit with Cursor
+
+This directory contains ResearchKit configuration for Cursor AI editor.
+
+## About Cursor
+
+Cursor is an AI-powered code editor built on VS Code with integrated AI assistance.
+
+## ResearchKit Integration
+
+When working on research projects:
+1. Use the `.researchkit/` directory structure
+2. Follow the research workflow: Plan → Execute → Synthesize
+3. Maintain proper citations in `sources.md`
+4. Document findings in `findings.md`
+5. Create synthesis reports in `synthesis.md`
+
+## Research Commands
+
+Run these bash scripts to manage your research:
+
+```bash
+# Create a new research plan
+bash .researchkit/scripts/bash/plan.sh "Research Topic"
+
+# Set up execution
+bash .researchkit/scripts/bash/execute.sh
+
+# Generate synthesis
+bash .researchkit/scripts/bash/synthesize.sh
+```
+
+## Using Cursor for Research
+
+Cursor's AI can help with:
+- Structuring research documents
+- Formatting citations consistently
+- Summarizing research findings
+- Generating literature review outlines
+- Analyzing research data
+
+### Tips
+
+- Use Cursor's chat to ask about citation formats
+- Highlight text and ask Cursor to refine or summarize
+- Use Cursor to help maintain consistent document structure
+- Ask Cursor to help verify citation completeness
+""")
+        # Create .cursorrules file for AI context
+        cursorrules_path = commands_dir / ".cursorrules"
+        cursorrules_path.write_text("""# ResearchKit Cursor AI Rules
+
+## Project Context
+This is a ResearchKit research project following structured research workflows.
+
+## Research Workflow
+1. **Plan**: Define research questions, objectives, and methodology
+2. **Execute**: Gather sources, document findings, maintain citations
+3. **Synthesize**: Analyze findings and create comprehensive reports
+
+## Key Principles
+- All claims must be properly cited
+- Maintain source quality ratings (1-5 stars)
+- Follow the research constitution in `.researchkit/memory/constitution.md`
+- Keep findings organized chronologically
+- Cross-reference important claims
+
+## File Structure
+- `plan.md`: Research question, objectives, and strategy
+- `sources.md`: Bibliography with quality ratings
+- `findings.md`: Research notes and discoveries
+- `synthesis.md`: Final analysis and conclusions
+
+## Citation Standards
+- Use consistent citation format throughout
+- Include source URLs and access dates
+- Rate source quality and note any bias
+- Maintain complete bibliography
+
+## When Editing Research Files
+- Preserve existing citation formats
+- Maintain chronological order in findings
+- Keep source quality ratings consistent
+- Follow the established document structure
+""")
+        tracker.add_step(f"Created {agent_config['name']} configuration with .cursorrules")
+
     # For other agents, create basic directory structure
     else:
         tracker.add_step(f"Created {agent_config['name']} directory structure")
@@ -400,7 +497,7 @@ gemini chat "Summarize these key points: [your findings]"
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Project name or '.' for current directory"),
-    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot, gemini)"),
+    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot, gemini, cursor)"),
 ):
     """
     Initialize a new ResearchKit project with structured research workflow support.
