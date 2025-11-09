@@ -24,12 +24,21 @@ app = typer.Typer(
     invoke_without_command=True,
 )
 
-# AI Agent configurations (currently supporting Claude)
+# AI Agent configurations
 AGENT_CONFIG = {
     "claude": {
         "name": "Claude Code",
         "commands_dir": ".claude/commands",
         "cli_check": "claude",
+        "requires_cli": False,
+        "install_url": None,
+    },
+    "copilot": {
+        "name": "GitHub Copilot",
+        "commands_dir": ".github/copilot",
+        "cli_check": None,
+        "requires_cli": False,
+        "install_url": None,
     }
 }
 
@@ -238,31 +247,81 @@ def create_researchkit_structure(project_dir: Path, tracker: StepTracker):
         tracker.add_step("Created research constitution")
 
 
-def create_claude_commands(project_dir: Path, ai_agent: str, tracker: StepTracker):
-    """Create Claude Code command files"""
-    if ai_agent != "claude":
+def create_agent_commands(project_dir: Path, ai_agent: str, tracker: StepTracker):
+    """Create AI agent-specific command files and directories"""
+    if ai_agent not in AGENT_CONFIG:
         return
 
-    commands_dir = project_dir / ".claude" / "commands"
+    agent_config = AGENT_CONFIG[ai_agent]
+    commands_dir = project_dir / agent_config["commands_dir"]
     commands_dir.mkdir(parents=True, exist_ok=True)
 
-    # Copy command files from templates
-    template_dir = get_template_dir()
-    commands_template_dir = template_dir.parent / "claude_commands"
+    # For Claude, copy command files from templates
+    if ai_agent == "claude":
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
 
-    if commands_template_dir.exists():
-        for command_file in commands_template_dir.glob("*.md"):
-            dst = commands_dir / command_file.name
-            shutil.copy2(command_file, dst)
-        tracker.add_step("Created Claude Code slash commands")
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                dst = commands_dir / command_file.name
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created Claude Code slash commands")
+        else:
+            tracker.add_error("Claude command templates not found")
+
+    # For GitHub Copilot, create a README with instructions
+    elif ai_agent == "copilot":
+        readme_path = commands_dir / "README.md"
+        readme_path.write_text("""# ResearchKit with GitHub Copilot
+
+This directory contains ResearchKit configuration for GitHub Copilot.
+
+## Usage
+
+GitHub Copilot works within your IDE (VS Code, JetBrains, etc.) to provide AI-powered code suggestions.
+
+## ResearchKit Integration
+
+When working on research projects:
+1. Use the `.researchkit/` directory structure
+2. Follow the research workflow: Plan → Execute → Synthesize
+3. Maintain proper citations in `sources.md`
+4. Document findings in `findings.md`
+5. Create synthesis reports in `synthesis.md`
+
+## Research Commands
+
+Run these bash scripts to manage your research:
+
+```bash
+# Create a new research plan
+bash .researchkit/scripts/bash/plan.sh "Research Topic"
+
+# Set up execution
+bash .researchkit/scripts/bash/execute.sh
+
+# Generate synthesis
+bash .researchkit/scripts/bash/synthesize.sh
+```
+
+## Copilot Tips for Research
+
+- Ask Copilot to help format citations
+- Use Copilot to generate search query suggestions
+- Have Copilot help structure your findings
+- Let Copilot assist with summarizing sources
+""")
+        tracker.add_step(f"Created {agent_config['name']} configuration")
+
+    # For other agents, create basic directory structure
     else:
-        tracker.add_error("Claude command templates not found")
+        tracker.add_step(f"Created {agent_config['name']} directory structure")
 
 
 @app.command()
 def init(
     project_name: Optional[str] = typer.Argument(None, help="Project name or '.' for current directory"),
-    ai: str = typer.Option("claude", help="AI agent to use (currently supports: claude)"),
+    ai: str = typer.Option("claude", help="AI agent to use (supports: claude, copilot)"),
 ):
     """
     Initialize a new ResearchKit project with structured research workflow support.
@@ -298,7 +357,7 @@ def init(
     create_researchkit_structure(project_dir, tracker)
 
     # Create AI-specific commands
-    create_claude_commands(project_dir, ai, tracker)
+    create_agent_commands(project_dir, ai, tracker)
 
     # Display results
     tracker.display()
