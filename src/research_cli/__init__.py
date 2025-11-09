@@ -49,14 +49,14 @@ AGENT_CONFIG = {
     },
     "cursor": {
         "name": "Cursor",
-        "commands_dir": ".cursor",
+        "commands_dir": ".cursor/commands",
         "cli_check": None,
         "requires_cli": False,
         "install_url": None,
     },
     "opencode": {
         "name": "OpenCode",
-        "commands_dir": ".opencode",
+        "commands_dir": ".opencode/commands",
         "cli_check": "opencode",
         "requires_cli": True,
         "install_url": "https://opencode.ai",
@@ -399,16 +399,39 @@ gemini chat "Summarize these key points: [your findings]"
         readme_path.write_text(readme_content)
         tracker.add_step(f"Created {agent_config['name']} configuration")
 
-    # For Cursor, create configuration with AI rules
+    # For Cursor, copy command files and create configuration with AI rules
     elif ai_agent == "cursor":
+        # Copy slash command files from templates
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
+
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                dst = commands_dir / command_file.name
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created Cursor slash commands")
+        else:
+            tracker.add_error("Command templates not found")
+
+        # Create README
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with Cursor
 
-This directory contains ResearchKit configuration for Cursor AI editor.
+This directory contains ResearchKit slash commands for Cursor AI editor.
 
 ## About Cursor
 
 Cursor is an AI-powered code editor built on VS Code with integrated AI assistance.
+
+## Slash Commands
+
+Use these commands in Cursor's AI chat:
+
+- `/researchkit.constitution` - Define research methodology and standards
+- `/researchkit.plan` - Create a structured research plan
+- `/researchkit.execute` - Execute research with proper documentation
+- `/researchkit.synthesize` - Generate comprehensive research report
+- `/researchkit.sources` - Manage bibliography and citations
 
 {get_common_researchkit_sections()}
 
@@ -423,14 +446,16 @@ Cursor's AI can help with:
 
 ### Tips
 
+- Use the slash commands above for guided research workflows
 - Use Cursor's chat to ask about citation formats
 - Highlight text and ask Cursor to refine or summarize
 - Use Cursor to help maintain consistent document structure
 - Ask Cursor to help verify citation completeness
 """
         readme_path.write_text(readme_content)
-        # Create .cursorrules file for AI context
-        cursorrules_path = commands_dir / ".cursorrules"
+
+        # Create .cursorrules file for AI context in parent directory
+        cursorrules_path = commands_dir.parent / ".cursorrules"
         cursorrules_path.write_text("""# ResearchKit Cursor AI Rules
 
 ## Project Context
@@ -468,16 +493,39 @@ This is a ResearchKit research project following structured research workflows.
 """)
         tracker.add_step(f"Created {agent_config['name']} configuration with .cursorrules")
 
-    # For OpenCode, create configuration and prompts
+    # For OpenCode, copy command files and create configuration and prompts
     elif ai_agent == "opencode":
+        # Copy slash command files from templates
+        template_dir = get_template_dir()
+        commands_template_dir = template_dir.parent / "claude_commands"
+
+        if commands_template_dir.exists():
+            for command_file in commands_template_dir.glob("*.md"):
+                dst = commands_dir / command_file.name
+                shutil.copy2(command_file, dst)
+            tracker.add_step("Created OpenCode slash commands")
+        else:
+            tracker.add_error("Command templates not found")
+
+        # Create README
         readme_path = commands_dir / "README.md"
         readme_content = f"""# ResearchKit with OpenCode
 
-This directory contains ResearchKit configuration for OpenCode AI.
+This directory contains ResearchKit slash commands for OpenCode AI.
 
 ## Installation
 
 Install OpenCode from: https://opencode.ai
+
+## Slash Commands
+
+Use these commands in OpenCode's chat interface:
+
+- `/researchkit.constitution` - Define research methodology and standards
+- `/researchkit.plan` - Create a structured research plan
+- `/researchkit.execute` - Execute research with proper documentation
+- `/researchkit.synthesize` - Generate comprehensive research report
+- `/researchkit.sources` - Manage bibliography and citations
 
 {get_common_researchkit_sections()}
 
@@ -509,6 +557,7 @@ opencode "Summarize these research findings into key themes: [findings]"
 
 ### Tips
 
+- Use the slash commands above for guided research workflows
 - Use OpenCode to help structure your research documents
 - Ask for help with citation formatting
 - Request summaries of complex sources
@@ -516,8 +565,9 @@ opencode "Summarize these research findings into key themes: [findings]"
 - Use OpenCode to identify gaps in your research
 """
         readme_path.write_text(readme_content)
-        # Create prompts directory with research-specific prompts
-        prompts_dir = commands_dir / "prompts"
+
+        # Create prompts directory with research-specific prompts in parent directory
+        prompts_dir = commands_dir.parent / "prompts"
         prompts_dir.mkdir(exist_ok=True)
 
         research_prompt = prompts_dir / "research_assistant.txt"
