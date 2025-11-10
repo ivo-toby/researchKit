@@ -56,7 +56,7 @@ AGENT_CONFIG = {
     },
     "opencode": {
         "name": "OpenCode",
-        "commands_dir": ".opencode/commands",
+        "commands_dir": ".opencode/command",
         "cli_check": "opencode",
         "requires_cli": True,
         "install_url": "https://opencode.ai",
