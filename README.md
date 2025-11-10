@@ -261,10 +261,39 @@ research init my-project --ai opencode
 - Citation management and formatting
 - Literature review synthesis
 - Custom research assistant configuration
+- **Ollama support for local models** 🔥
 
 **Installation:** https://opencode.ai
 
 **Use when:** You need specialized AI assistance for academic research.
+
+#### 🏠 Privacy-First Research: OpenCode + Ollama
+
+OpenCode supports [Ollama](https://ollama.ai), enabling **100% local AI research** with no data leaving your machine. This is perfect for:
+
+- **Privacy-sensitive research** - Medical, legal, or proprietary research
+- **Cost-effective workflows** - No API costs, unlimited usage
+- **Offline research** - Work without internet connectivity
+- **Data sovereignty** - Full control over your research data
+
+**Setup:**
+
+1. Install Ollama: https://ollama.ai
+2. Pull a model (e.g., `ollama pull llama3.2` or `ollama pull qwen2.5:32b`)
+3. Configure OpenCode to use Ollama
+4. Initialize ResearchKit:
+   ```bash
+   research init my-private-research --ai opencode
+   cd my-private-research
+   opencode
+   ```
+
+**Recommended models for research:**
+- `qwen2.5:32b` - Excellent for research tasks, citation formatting
+- `llama3.2` - Good general-purpose research assistant
+- `mixtral` - Strong reasoning for complex analysis
+
+Now you can conduct rigorous, well-documented research entirely on your local machine! 🔬🏠
 
 ---
 
@@ -605,6 +634,42 @@ Constitution emphasizes:
 - Recency requirements
 
 Use Cursor's AI chat to help structure findings and analysis.
+
+### Privacy-First Research (OpenCode + Ollama)
+
+```bash
+# Install Ollama and pull a research-optimized model
+ollama pull qwen2.5:32b
+
+# Initialize ResearchKit with OpenCode
+research init medical-research --ai opencode
+cd medical-research
+
+# Start OpenCode (configured to use Ollama)
+opencode
+```
+
+Constitution emphasizes:
+- Data privacy and local processing
+- Sensitive information handling
+- HIPAA/GDPR compliance awareness
+- Source verification without cloud dependencies
+
+**Perfect for:**
+- Medical and healthcare research
+- Legal research and case analysis
+- Proprietary business research
+- Research with confidential data
+- Academic research on a budget
+- Offline research environments
+
+**Benefits:**
+- 💰 **Zero API costs** - Run unlimited queries locally
+- 🔒 **Complete privacy** - Your research never leaves your machine
+- 🚀 **Fast iterations** - No network latency or rate limits
+- 📡 **Offline capable** - Research anywhere, anytime
+
+Use OpenCode's slash commands (`/researchkit.plan`, `/researchkit.execute`, etc.) with the power of local AI models!
 
 ---
 
